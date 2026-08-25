@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.models.department import Department
+    from app.models.notice import Notice
 
 class Course(Base):
     __tablename__ = "courses"
@@ -25,4 +26,5 @@ class Course(Base):
     department: Mapped["Department"] = relationship(
         "Department", back_populates="courses"
     )
+    notices: Mapped[list["Notice"]] = relationship(back_populates="course")
 

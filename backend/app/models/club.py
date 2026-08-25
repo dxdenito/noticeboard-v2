@@ -3,6 +3,10 @@ from app.core.database import Base
 from sqlalchemy import Integer, String, DateTime,func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.notice import Notice
 
 class Club(Base):
     __tablename__ = "clubs"
@@ -17,3 +21,5 @@ class Club(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    notices: Mapped[list["Notice"]] = relationship(back_populates="club")

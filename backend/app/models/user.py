@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.models.role import Role
+    from app.models.notice import Notice
 
 
 
@@ -30,3 +31,4 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     role: Mapped["Role"] = relationship("Role", back_populates="users")
+    notices: Mapped[list["Notice"]] = relationship(back_populates="author")
