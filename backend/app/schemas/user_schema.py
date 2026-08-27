@@ -34,10 +34,4 @@ class UserCreateByAdmin(BaseModel):
     role_id: int
     requires_approval: bool | None = None
 
-class UserCreateByAdmin(BaseModel):
-    email: EmailStr
-    password: str
-    full_name: str
-    role_id: int
-    requires_approval: bool | None = None
 

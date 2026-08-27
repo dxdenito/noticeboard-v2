@@ -1,9 +1,8 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-@theme{
-    --color-jkuat-green :green;
-    --color-jkuat-red: red;
-    --color-jkuat-white:white;
-    --shadow-bottom: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+@theme {
+  --color-jkuat-green: #16a34a;
+  --color-jkuat-red: #dc2626;
+  --color-jkuat-white: #ffffff;
 }

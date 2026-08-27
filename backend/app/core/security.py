@@ -35,3 +35,11 @@ def decode_access_token(token: str) -> dict | None:
         return payload
     except JWTError:
         return None
+
+def create_audience_token(audience_value: str, expire_hours: int = 24) -> str:
+    to_encode = {
+        "audience": audience_value,
+        "type": "audience_verification",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=expire_hours),
+    }
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)

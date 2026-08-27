@@ -2,7 +2,11 @@ import image from '../images/image-1.jpg'
 export default function Feed(){
     return(
         <>
-
+        <div 
+        className="fixed inset-0 pointer-events-none z-0
+                   bg-[url('./images/jkuatlogo.png')] bg-no-repeat bg-center 
+                   bg-[length:70vmin] opacity-[0.05]" 
+      />
         <h1 className="w-full text-center text-2xl">Welcome to noticeboard</h1>
 
         

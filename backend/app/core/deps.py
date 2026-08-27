@@ -4,7 +4,9 @@ from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
-
+from fastapi import Cookie
+from app.core.security import decode_access_token
+from app.models.notice import Audience
 
 async def get_current_user(
     access_token: str | None = Cookie(default=None),
@@ -46,3 +48,27 @@ def require_roles(*allowed_roles: str):
             )
         return current_user
     return role_checker
+
+
+
+async def get_viewer_audience(
+    audience_token: str | None = Cookie(default=None),
+) -> Audience | None:
+    if audience_token is None:
+        return None
+
+    payload = decode_access_token(audience_token)
+    if payload is None:
+        return None
+
+    # critical: reject anything that isn't actually an audience token —
+    # this is what stops an admin session cookie (or a forged token) from
+    # being misread as an audience claim
+    if payload.get("type") != "audience_verification":
+        return None
+
+    audience_value = payload.get("audience")
+    try:
+        return Audience(audience_value)
+    except (ValueError, TypeError):
+        return None
