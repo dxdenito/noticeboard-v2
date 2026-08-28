@@ -2,7 +2,8 @@ import AdminNavbar from "../components/admin/AdminNavbar";
 import { Menu, X, LayoutDashboard, PlusCircle, FileText, CheckSquare, Users, Tags, Pin, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { useLocation, Link, Outlet } from "react-router-dom";
+
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "web_admin"] },
   { to: "/dashboard/post", label: "Post Notice", icon: PlusCircle, roles: ["super_admin", "web_admin"] },
@@ -15,6 +16,7 @@ const NAV_ITEMS = [
 export default function AdminLayout(){
     const { user, logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const location = useLocation();
     
     const visibleItems = NAV_ITEMS.filter((item) => user && item.roles.includes(user.role.name));
     return(
@@ -81,115 +83,3 @@ export default function AdminLayout(){
     )
 }
 
-
-// import { useState } from "react";
-// import { Outlet, Link, useLocation } from "react-router-dom";
-// import { Menu, X, LayoutDashboard, PlusCircle, FileText, CheckSquare, Users, Tags, Pin } from "lucide-react";
-// import logo from "../images/jkuatlogo.png";
-// import { useAuth } from "../context/AuthContext";
-// import AdminNavbar from '../components/admin/AdminNavbar'
-
-// const NAV_ITEMS = [
-//   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "web_admin"] },
-//   { to: "/dashboard/post", label: "Post Notice", icon: PlusCircle, roles: ["super_admin", "web_admin"] },
-//   { to: "/dashboard/my-notices", label: "My Notices", icon: FileText, roles: ["super_admin", "web_admin"] },
-//   { to: "/dashboard/review-queue", label: "Review Queue", icon: CheckSquare, roles: ["super_admin"] },
-//   { to: "/dashboard/users", label: "Manage Users", icon: Users, roles: ["super_admin"] },
-//   { to: "/dashboard/tags", label: "Manage Tags", icon: Tags, roles: ["super_admin", "web_admin"] },
-//   { to: "/dashboard/pinned", label: "Pinned Notices", icon: Pin, roles: ["super_admin"] },
-// ];
-
-// export default function AdminLayout() {
-//   const [sidebarOpen, setSidebarOpen] = useState(false);
-//   const { user, logout } = useAuth();
-//   const location = useLocation();
-
-//   const visibleItems = NAV_ITEMS.filter((item) => user && item.roles.includes(user.role.name));
-
-//   return (
-//     <div className="min-h-screen bg-gray-50 flex">
-//         <AdminNavbar/>
-//       {/* Sidebar — desktop: static, mobile: slide-in panel */}
-//       <aside
-//         className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out
-//           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:static md:flex md:flex-col`}
-//       >
-//         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
-//           <img src={logo} className="h-8" alt="JKUAT Logo" />
-//           <span className="font-extrabold text-sm uppercase tracking-wide text-gray-900">Admin Panel</span>
-//         </div>
-//         <nav className="flex-1 px-3 py-4 space-y-1">
-//           {visibleItems.map((item) => {
-//             const Icon = item.icon;
-//             const active = location.pathname === item.to;
-//             return (
-//               <Link
-//                 key={item.to}
-//                 to={item.to}
-//                 onClick={() => setSidebarOpen(false)}
-//                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors
-//                   ${active ? "bg-jkuat-green/10 text-jkuat-green" : "text-gray-600 hover:bg-gray-50"}`}
-//               >
-//                 <Icon size={18} />
-//                 {item.label}
-//               </Link>
-//             );
-//           })}
-//         </nav>
-//         <div className="px-3 py-4 border-t border-gray-100">
-//           <button
-//             onClick={logout}
-//             className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50"
-//           >
-//             Log out
-//           </button>
-//         </div>
-//       </aside>
-
-//       {/* Mobile overlay backdrop when sidebar is open */}
-//       {sidebarOpen && (
-//         <div
-//           className="fixed inset-0 bg-black/30 z-30 md:hidden"
-//           onClick={() => setSidebarOpen(false)}
-//         />
-//       )}
-
-//       {/* Main content column */}
-//       <div className="flex-1 flex flex-col min-w-0">
-//         {/* Mobile top bar with hamburger */}
-//         <header className="md:hidden flex items-center justify-between bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-20">
-//           <button onClick={() => setSidebarOpen(true)} aria-label="Open menu">
-//             <Menu size={22} />
-//           </button>
-//           <span className="font-bold text-sm text-jkuat-green">JKUAT Noticeboard Admin</span>
-//           <div className="w-[22px]" /> {/* spacer to balance the hamburger */}
-//         </header>
-
-//         <main className="flex-1 p-4 md:p-8">
-//           <Outlet />
-//         </main>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-// import {Link, Outlet} from 'react-router-dom'
-// import AdminNavbar from '../components/admin/AdminNavbar'
-// import AdminFooter from '../components/admin/AdminFooter'
-// export default function MainLayout(){
-//     return(
-//         <>
-//            <div className="min-h-screen flex flex-col bg-white text-slate-900">
-          
-//             <AdminNavbar/>
-//             <main className="flex-1 max-w-7xl w-full mx-auto  p-2 md:p-6">
-                
-//                 <Outlet />
-                
-//             </main>
-//             <AdminFooter/>
-//             </div>
-//         </>
-//     )
-// }

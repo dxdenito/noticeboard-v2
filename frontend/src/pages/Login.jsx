@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logo from "../images/jkuatlogo.png"
+import { useToast } from '../context/ToastContext';
 
 export default function AsymmetricLoginPage() {
   const { login } = useAuth();
@@ -9,6 +10,7 @@ export default function AsymmetricLoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const { showError, showSuccess } = useToast();
   const [submitting, setSubmitting] = useState(false);
 
   const handleLogin = async (e) => {
@@ -19,7 +21,7 @@ export default function AsymmetricLoginPage() {
       await login(username, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message);
+      showError(err.message)
     } finally {
       setSubmitting(false);
     }
