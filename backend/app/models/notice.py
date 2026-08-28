@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.category import Category
     from app.models.club import Club
     from app.models.department import Department
+    from app.models.attachment import Attachment
 
 
 class Audience(enum.Enum):
@@ -71,3 +72,4 @@ class Notice(Base):
     club: Mapped["Club | None"] = relationship(back_populates="notices")
     category: Mapped["Category"] = relationship(back_populates="notices")
     course: Mapped["Course | None"] = relationship(back_populates="notices")
+    attachments: Mapped[list["Attachment"]] = relationship(back_populates="notice")

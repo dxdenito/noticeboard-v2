@@ -5,5 +5,6 @@ from app.models.department import Department
 from app.models.category import Category
 from app.models.club import Club
 from app.models.notice import Notice
+from app.models.attachment import Attachment
 
-__all__ = ["Role", "User", "Course", "Department", "Category", "Club", "Notice"]
+__all__ = ["Role", "User", "Course", "Department", "Category", "Club", "Notice","Attachment"]

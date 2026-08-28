@@ -1,4 +1,4 @@
-import logo from "../images/jkuatlogo.png"
+import logo from "../../images/jkuatlogo.png"
 import React, { useRef } from 'react';
 
 export default function AdminNavbar(){
@@ -9,7 +9,7 @@ export default function AdminNavbar(){
 
     return(
         <> 
-            <nav className="sticky w-full z-20 top-0 start-0  h-20 bg-white border-b border-gray-200 flex items-stretch shadow-md font-sans select-none">
+            <nav className="sticky w-full z-20 top-0 start-0  h-20 bg-white border-b border-gray-200 flex justify-between  items-stretch shadow-md font-sans select-none">
       
       {/* 1. BRAND BLOCK (Left - Red Background) */}
       <a 
@@ -29,8 +29,6 @@ export default function AdminNavbar(){
         </div>
       </a>
 
-      {/* 2. SCROLLABLE MENU (Center - Moves behind the angled cut) */}
-      
 
       {/* 3. ACTION BLOCK (Right - Clean White layout with Green accent button) */}
       <div className="flex items-center gap-6 pr-6 shrink-0 bg-white pl-4 shadow-[-15px_0_15px_-5px_rgba(255,255,255,0.9)] z-10">
