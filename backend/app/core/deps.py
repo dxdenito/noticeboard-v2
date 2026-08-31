@@ -72,3 +72,18 @@ async def get_viewer_audience(
         return Audience(audience_value)
     except (ValueError, TypeError):
         return None
+    
+async def get_optional_current_user(
+    access_token: str | None = Cookie(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    if access_token is None:
+        return None
+    payload = decode_access_token(access_token)
+    if payload is None:
+        return None
+    user_email: str | None = payload.get("sub")
+    if user_email is None:
+        return None
+    user_repo = UserRepository(db)
+    return await user_repo.get_by_email(user_email)

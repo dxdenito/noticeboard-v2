@@ -25,7 +25,7 @@ export default function AdminLayout(){
             <div className="flex">
                 {/* sidebar */}
                 <aside
-                    className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out
+                    className={`fixed inset-y-0 left-0 z-50 md:z-40 w-64 h-full bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out
                     ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:static md:flex md:flex-col`}
                 >
                     <nav className="flex-1 px-3 py-4 space-y-1">

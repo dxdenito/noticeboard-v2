@@ -9,7 +9,7 @@ export default function AdminNavbar(){
 
     return(
         <> 
-            <nav className="sticky w-full z-20 top-0 start-0  h-20 bg-white border-b border-gray-200 flex justify-between  items-stretch shadow-md font-sans select-none">
+            <nav className="sticky w-full z-50 top-0 start-0  h-20 bg-white border-b border-gray-200 flex justify-between  items-stretch shadow-md font-sans select-none">
       
       {/* 1. BRAND BLOCK (Left - Red Background) */}
       <a 
@@ -33,13 +33,6 @@ export default function AdminNavbar(){
       {/* 3. ACTION BLOCK (Right - Clean White layout with Green accent button) */}
       <div className="flex items-center gap-6 pr-6 shrink-0 bg-white pl-4 shadow-[-15px_0_15px_-5px_rgba(255,255,255,0.9)] z-10">
         
-        {/* ISO-9001 Badge */}
-        <a 
-          href="#iso-info"
-          className="border-2 border-green-600 text-green-700 text-xs font-bold px-3 py-1 rounded tracking-wider hover:bg-green-50 transition-all cursor-pointer decoration-transparent"
-        >
-          ISO - 9001
-        </a>
 
         {/* Login Button */}
         <a 

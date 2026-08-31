@@ -32,6 +32,7 @@ class NoticeRepository:
             )
             .options(
                 selectinload(Notice.category),
+                selectinload(Notice.attachments),
                 selectinload(Notice.author),
                 selectinload(Notice.department),
                 selectinload(Notice.club),
@@ -47,6 +48,7 @@ class NoticeRepository:
     async def get_by_id(self,notice_id:int)->Notice|None:
         statement = select(Notice).where(Notice.id == notice_id).options(
                 selectinload(Notice.department),
+                selectinload(Notice.attachments),
                 selectinload(Notice.club),
                 selectinload(Notice.category),
                 selectinload(Notice.course),
@@ -87,6 +89,7 @@ class NoticeRepository:
                     ),
                 )
                 .options(
+                    selectinload(Notice.attachments),
                     selectinload(Notice.category),
                     selectinload(Notice.author),
                     selectinload(Notice.department),
@@ -117,5 +120,67 @@ class NoticeRepository:
 
     async def list_by_department_id(self,department_id: int)-> list[Notice]:
         statement = (select(Notice).where(Notice.department_id == department_id))
+        result = await self.db.execute(statement)
+        return list(result.scalars().all())
+    
+    async def list_all_approved(self, limit: int = 50, offset: int = 0) -> list[Notice]:
+        statement = (
+            select(Notice)
+            .where(
+                Notice.status == NoticeStatus.APPROVED,
+                or_(
+                    Notice.expiry_date.is_(None),
+                    Notice.expiry_date > datetime.now(timezone.utc),
+                ),
+            )
+            .options(
+                selectinload(Notice.attachments),
+                selectinload(Notice.category),
+                selectinload(Notice.author),
+                selectinload(Notice.department),
+                selectinload(Notice.club),
+                selectinload(Notice.course),
+            )
+            .order_by(Notice.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.db.execute(statement)
+        return list(result.scalars().all())
+    async def list_by_author(self, author_id: int, limit: int = 50, offset: int = 0) -> list[Notice]:
+        statement = (
+            select(Notice)
+            .where(Notice.author_id == author_id)
+            .options(
+                selectinload(Notice.attachments),
+                selectinload(Notice.category),
+                selectinload(Notice.author),
+                selectinload(Notice.department),
+                selectinload(Notice.club),
+                selectinload(Notice.course),
+            )
+            .order_by(Notice.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.db.execute(statement)
+        return list(result.scalars().all())
+
+    async def list_pinned_site(self, limit: int = 10) -> list[Notice]:
+        statement = (
+            select(Notice)
+            .where(
+                Notice.is_pinned_site == True,
+                Notice.status == NoticeStatus.APPROVED,
+                Notice.audience == Audience.PUBLIC,
+            )
+            .options(
+                selectinload(Notice.category),
+                selectinload(Notice.author),
+                selectinload(Notice.attachments),
+            )
+            .order_by(Notice.created_at.desc())
+            .limit(limit)
+        )
         result = await self.db.execute(statement)
         return list(result.scalars().all())

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from app.models.notice import Audience, NoticeStatus
+from app.schemas.attachment_schema import AttachmentRead
 
 class NoticeCreate(BaseModel):
     title: str
@@ -17,7 +18,7 @@ class NoticeCreate(BaseModel):
 class NoticeRead(BaseModel):
     id: int
     title: str
-    body: str
+    body: str | None
     category_id: int
     author_id: int
     audience: Audience
@@ -29,6 +30,8 @@ class NoticeRead(BaseModel):
     is_pinned_feed: bool = False  
     status: NoticeStatus
     is_pinned_site: bool = False
+    is_locked: bool = False
+    attachments: list[AttachmentRead] = []
 
     class Config:
         from_attributes = True

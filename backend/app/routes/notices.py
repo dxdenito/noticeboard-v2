@@ -7,7 +7,8 @@ from app.services.notice_service import NoticeService
 from app.core.deps import get_db, get_current_user
 from app.core.deps import get_viewer_audience
 from app.models.notice import Audience
-
+from app.core.deps import get_viewer_audience
+from app.models.notice import Audience
 
 
 router = APIRouter(prefix="/notices", tags=["notices"])
@@ -41,7 +42,49 @@ async def list_pending(limit: int = 50,
 ):
     notice_service = NoticeService(db)
     return await notice_service.list_pending(current_user,viewer_audience,limit,offset)
-    
+
+@router.get("/mine", response_model=list[NoticeRead])
+async def get_my_notices(
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    notices = await notice_service.list_my_notices(current_user, limit, offset)
+    return [NoticeRead.model_validate(n) for n in notices]\
+
+@router.get("/manage", response_model=list[NoticeRead])
+async def get_manage_notices(
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    notices = await notice_service.list_for_admin(current_user, limit, offset)
+    return [NoticeRead.model_validate(n) for n in notices]
+
+@router.get("/pinned-site", response_model=list[NoticeRead])
+async def get_pinned_site_notices(
+    limit: int = 10,
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    notices = await notice_service.list_pinned_site(limit)
+    return [NoticeRead.model_validate(n) for n in notices]
+
+
+@router.get("/{id}", response_model=NoticeRead)
+async def get_notice(
+    id: int,
+    viewer_audience: Audience | None = Depends(get_viewer_audience),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    return await notice_service.get_by_id(id, viewer_audience)
+
+        
 @router.patch("/{id}/approve", response_model=NoticeRead)
 async def approve_notice(notice_id:int, current_user: User = Depends(get_current_user),db: AsyncSession = Depends(get_db)):
     noticeservice = NoticeService(db)
@@ -52,3 +95,41 @@ async def reject_notice(notice_id:int, current_user: User = Depends(get_current_
     noticeservice = NoticeService(db)
     return await noticeservice.reject(notice_id, current_user)
 
+@router.patch("/{id}/pin-site", response_model=NoticeRead)
+async def pin_notice_site(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    return await notice_service.pin_site(id, current_user)
+
+
+@router.patch("/{id}/unpin-site", response_model=NoticeRead)
+async def unpin_notice_site(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    return await notice_service.unpin_site(id, current_user)
+
+
+@router.patch("/{id}/pin-feed", response_model=NoticeRead)
+async def pin_notice_feed(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    return await notice_service.pin_feed(id, current_user)
+
+
+@router.patch("/{id}/unpin-feed", response_model=NoticeRead)
+async def unpin_notice_feed(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    return await notice_service.unpin_feed(id, current_user)
