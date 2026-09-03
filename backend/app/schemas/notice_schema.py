@@ -4,6 +4,7 @@ from datetime import datetime
 
 from app.models.notice import Audience, NoticeStatus
 from app.schemas.attachment_schema import AttachmentRead
+from app.schemas.category_schema import CategoryRead
 
 class NoticeCreate(BaseModel):
     title: str
@@ -19,7 +20,7 @@ class NoticeRead(BaseModel):
     id: int
     title: str
     body: str | None
-    category_id: int
+    category: CategoryRead
     author_id: int
     audience: Audience
     department_id: int | None 
@@ -35,3 +36,13 @@ class NoticeRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+class NoticeUpdate(BaseModel):
+    title: str | None = None
+    body: str | None = None
+    category_id: int | None = None
+    audience: Audience | None = None
+    department_id: int | None = None
+    club_id: int | None = None
+    course_id: int | None = None
+    expiry_date: datetime | None = None

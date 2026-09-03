@@ -3,7 +3,7 @@ from fastapi import HTTPException
 
 from app.repositories.notice_repository import NoticeRepository
 from app.models.notice import NoticeStatus, Notice, Audience
-from app.schemas.notice_schema import NoticeCreate, NoticeRead
+from app.schemas.notice_schema import NoticeCreate, NoticeRead, NoticeUpdate
 
 from app.models.user import User
 
@@ -203,6 +203,39 @@ class NoticeService:
 
     async def list_pinned_site(self, limit: int = 10) -> list[Notice]:
         return await self.notice_repo.list_pinned_site(limit)
+
+    async def update(self, notice_id: int, data: NoticeUpdate, current_user: User) -> Notice:
+        notice = await self.notice_repo.get_by_id(notice_id)
+        if not notice:
+            raise HTTPException(404, "Notice not found")
+
+        if current_user.role.name != "super_admin" and notice.author_id != current_user.id:
+            raise HTTPException(403, "Only the author or a super_admin can edit this notice")
+
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(notice, field, value)
+
+        # Re-evaluate approval status using the same rule as creation.
+        if current_user.role.name == "super_admin" or not current_user.requires_approval:
+            notice.status = NoticeStatus.APPROVED
+        else:
+            notice.status = NoticeStatus.PENDING
+
+        await self.notice_repo.update(notice)
+        reloaded = await self.notice_repo.get_by_id(notice_id)
+        if reloaded is None:
+            raise HTTPException(500, "Notice update failed unexpectedly")
+        return reloaded
+
+    async def delete(self, notice_id: int, current_user: User) -> None:
+        notice = await self.notice_repo.get_by_id(notice_id)
+        if not notice:
+            raise HTTPException(404, "Notice not found")
+
+        if current_user.role.name != "super_admin" and notice.author_id != current_user.id:
+            raise HTTPException(403, "Only the author or a super_admin can delete this notice")
+
+        await self.notice_repo.delete(notice)
 
     
 

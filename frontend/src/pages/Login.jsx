@@ -30,12 +30,7 @@ export default function AsymmetricLoginPage() {
 
   return (
     <div className="w-full min-h-screen bg-white relative flex items-center justify-center overflow-hidden font-sans select-none">
-      
-      {/* ========================================================================= */}
-      {/* BACKGROUND DIAGONAL STRIPES (As drawn in sketch)                           */}
-      {/* ========================================================================= */}
-      
-      {/* Top Right / Center Diagonal Stripes (White background canvas with Red stripe overlay) */}
+
       <div 
         className="absolute inset-0 z-0 bg-white pointer-events-none"
         style={{
@@ -49,7 +44,6 @@ export default function AsymmetricLoginPage() {
         }}
       />
 
-      {/* Bottom Left / Center Diagonal Stripes (Green stripe overlay matching alignment) */}
       <div 
         className="absolute inset-0 z-0 pointer-events-none"
         style={{
@@ -62,24 +56,19 @@ export default function AsymmetricLoginPage() {
         }}
       />
 
-      {/* Additional creative geometric alignment block overlay to complete the look */}
+
       <div 
         className="absolute bottom-0 left-0 w-1/3 h-1/3 bg-white pointer-events-none z-0"
         style={{ clipPath: 'polygon(0 100%, 100% 100%, 0 0)' }}
       />
 
 
-      {/* ========================================================================= */}
-      {/* LOGIN CARD WINDOW (Centered Container)                                    */}
-      {/* ========================================================================= */}
       <main className="w-full max-w-md bg-white border border-gray-100 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-8 relative z-10 mx-auto backdrop-blur-sm bg-white/95">
-        
-        {/* Top Decorative Color Accent Strip */}
+ 
         <div className="absolute top-0 left-0 right-0 h-2 bg-jkuat-green rounded-t-2xl" />
 
         <form onSubmit={handleLogin} className="flex flex-col items-stretch space-y-6">
-          
-          {/* LOGO CONTAINER (Handwritten cloud emblem reimagined) */}
+
           <div className="flex flex-col items-center justify-center space-y-2 pt-2">
             <img src={logo} className="h-10" alt="Jkuat Logo" />
             <h1 className="text-xl font-black tracking-tight text-gray-900 uppercase pt-2">
@@ -88,7 +77,7 @@ export default function AsymmetricLoginPage() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Secure Credentials Access</p>
           </div>
 
-          {/* INPUT FORM FIELD CONTROLS */}
+
           <div className="space-y-4 pt-4">
             
             {/* Username Input layout */}

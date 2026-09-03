@@ -15,6 +15,7 @@ import ManageUsers from "./pages/admin/ManageUsers";
 import ManageTags from "./pages/admin/ManageTags";
 import PinnedNotices from "./pages/admin/PinnedNotices";
 import NoticeDetail from "./pages/NoticeDetail";
+import EditNotice from "./pages/admin/EditNotice";
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
           <Route path="/dashboard/users" element={<ManageUsers/>}/>
           <Route path="/dashboard/tags" element={<ManageTags/>}/>
           <Route path="/dashboard/pinned" element={<PinnedNotices/>}/>
+          <Route path="/dashboard/edit-notice/:id" element={<EditNotice/>}/>
 
         </Route>
       </Routes>

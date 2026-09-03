@@ -76,7 +76,7 @@ export default function AsymmetricNoticeboard() {
             <div className="flex items-center gap-3">
               <span className="w-2.5 h-6 bg-red-600 rounded-sm transform skew-x-12 inline-block"></span>
               <h2 className="text-base font-extrabold tracking-wider text-red-600 uppercase">
-                Urgent / Pinned Notices
+                Pinned Notices
               </h2>
             </div>
 
@@ -114,7 +114,7 @@ export default function AsymmetricNoticeboard() {
                         <div className="flex-1 flex flex-col justify-between h-full min-w-0">
                           <div>
                             <span className="inline-block text-red-600 text-[10px] font-extrabold tracking-wider uppercase bg-red-50 px-2 py-0.5 rounded mb-1.5">
-                              {notice.category_id ? `Category ${notice.category_id}` : "General"}
+                              {notice.category_id ? `Category ${notice.category.name}` : "General"}
                             </span>
                             <h3 className="font-extrabold text-sm text-gray-900 leading-snug line-clamp-2 hover:text-red-600 cursor-pointer transition-colors">
                               {notice.title}

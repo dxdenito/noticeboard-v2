@@ -184,3 +184,7 @@ class NoticeRepository:
         )
         result = await self.db.execute(statement)
         return list(result.scalars().all())
+
+    async def delete(self, notice: Notice) -> None:
+        await self.db.delete(notice)
+        await self.db.commit()

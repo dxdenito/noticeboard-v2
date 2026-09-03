@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import APIRouter, Depends
-from app.schemas.notice_schema import NoticeRead, NoticeCreate
+from app.schemas.notice_schema import NoticeRead, NoticeCreate,NoticeUpdate
 from app.models.user import User
 from app.services.notice_service import NoticeService
 from app.core.deps import get_db, get_current_user
@@ -74,6 +74,26 @@ async def get_pinned_site_notices(
     notices = await notice_service.list_pinned_site(limit)
     return [NoticeRead.model_validate(n) for n in notices]
 
+@router.patch("/{id}", response_model=NoticeRead)
+async def update_notice(
+    id: int,
+    data: NoticeUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    notice = await notice_service.update(id, data, current_user)
+    return NoticeRead.model_validate(notice)
+
+
+@router.delete("/{id}", status_code=204)
+async def delete_notice(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    await notice_service.delete(id, current_user)
 
 @router.get("/{id}", response_model=NoticeRead)
 async def get_notice(
