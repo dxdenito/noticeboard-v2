@@ -32,4 +32,23 @@ class UserAdminService:
         if reloaded is None:
             raise HTTPException(500, "User creation failed unexpectedly")
         return reloaded
-    
+
+    async def update_user(self, user_id: int, data: UserUpdate, current_user: User) -> User:
+        if current_user.role.name != "super_admin":
+            raise HTTPException(403, "Only super_admin can manage users")
+
+        user = await self.user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(404, "User not found")
+
+        if user.id == current_user.id and data.is_active is False:
+            raise HTTPException(400, "You cannot deactivate your own account")
+
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(user, field, value)
+
+        updated = await self.user_repo.update(user)
+        reloaded = await self.user_repo.get_by_id(updated.id)
+        if reloaded is None:
+            raise HTTPException(500, "User update failed unexpectedly")
+        return reloaded 

@@ -1,12 +1,30 @@
 import { useState, useEffect } from "react";
+import { Pencil, Power, PowerOff } from "lucide-react";
 import { api } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 
+const AVATAR_COLORS = [
+  "bg-red-500", "bg-orange-500", "bg-amber-500", "bg-lime-500",
+  "bg-green-500", "bg-teal-500", "bg-cyan-500", "bg-blue-500",
+  "bg-indigo-500", "bg-violet-500", "bg-purple-500", "bg-pink-500",
+];
+
+function avatarColor(id) {
+  return AVATAR_COLORS[id % AVATAR_COLORS.length];
+}
+
+function initials(fullName) {
+  return fullName.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+}
+
 export default function ManageUsers() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", role_id: "", requires_approval: "false" });
   const [submitting, setSubmitting] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const { showError, showSuccess } = useToast();
 
   async function loadUsers() {
@@ -41,6 +59,30 @@ export default function ManageUsers() {
       showError(err.message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function toggleActive(u) {
+    try {
+      await api.patch(`/users/${u.id}`, { is_active: !u.is_active });
+      showSuccess(u.is_active ? "User deactivated" : "User activated");
+      loadUsers();
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  async function saveEdit() {
+    try {
+      await api.patch(`/users/${editingUser.id}`, {
+        role_id: Number(editingUser.role_id),
+        requires_approval: editingUser.role_id === "2" ? editingUser.requires_approval === "true" : null,
+      });
+      showSuccess("User updated");
+      setEditingUser(null);
+      loadUsers();
+    } catch (err) {
+      showError(err.message);
     }
   }
 
@@ -81,17 +123,86 @@ export default function ManageUsers() {
         </button>
       </form>
 
-      <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {users.map((u) => (
-          <div key={u.id} className="px-4 py-3 flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-sm text-gray-900">{u.full_name}</p>
-              <p className="text-xs text-gray-400">{u.email}</p>
+          <div key={u.id} className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-full ${avatarColor(u.id)} text-white flex items-center justify-center font-bold text-sm shrink-0`}>
+                {initials(u.full_name)}
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-sm text-gray-900 truncate">{u.full_name}</p>
+                <p className="text-xs text-gray-400 truncate">{u.email}</p>
+              </div>
             </div>
-            <span className="text-[10px] font-bold uppercase text-gray-500">{u.role.name}</span>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-bold uppercase text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                {u.role.name}
+              </span>
+              {!u.is_active && (
+                <span className="text-[10px] font-bold uppercase text-jkuat-red bg-red-50 px-2 py-0.5 rounded">
+                  Deactivated
+                </span>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-gray-100">
+              <button
+                onClick={() => setEditingUser({ id: u.id, role_id: String(u.role.id), requires_approval: String(u.requires_approval ?? false) })}
+                aria-label="Edit user"
+                className="flex items-center gap-1 text-xs text-jkuat-green font-semibold"
+              >
+                <Pencil size={14} /> Edit
+              </button>
+              {u.id !== currentUser.id && (
+                <button
+                  onClick={() => toggleActive(u)}
+                  aria-label={u.is_active ? "Deactivate user" : "Activate user"}
+                  className={`flex items-center gap-1 text-xs font-semibold ${u.is_active ? "text-jkuat-red" : "text-jkuat-green"}`}
+                >
+                  {u.is_active ? <PowerOff size={14} /> : <Power size={14} />}
+                  {u.is_active ? "Deactivate" : "Activate"}
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
+
+      {editingUser && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full">
+            <h3 className="font-bold text-lg mb-4">Edit User Role</h3>
+            <select
+              value={editingUser.role_id}
+              onChange={(e) => setEditingUser((prev) => ({ ...prev, role_id: e.target.value }))}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
+            >
+              <option value="1">super_admin</option>
+              <option value="2">web_admin</option>
+            </select>
+            {editingUser.role_id === "2" && (
+              <select
+                value={editingUser.requires_approval}
+                onChange={(e) => setEditingUser((prev) => ({ ...prev, requires_approval: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-4"
+              >
+                <option value="false">Auto-publish</option>
+                <option value="true">Requires approval</option>
+              </select>
+            )}
+            <div className="flex gap-2">
+              <button onClick={saveEdit} className="flex-1 bg-jkuat-green text-white font-bold py-2 rounded-lg">
+                Save
+              </button>
+              <button onClick={() => setEditingUser(null)} className="flex-1 bg-gray-100 text-gray-700 font-bold py-2 rounded-lg">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

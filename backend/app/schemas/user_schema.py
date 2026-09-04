@@ -34,4 +34,10 @@ class UserCreateByAdmin(BaseModel):
     role_id: int
     requires_approval: bool | None = None
 
+class UserUpdate(BaseModel):
+    full_name: str | None = None
+    role_id: int | None = None
+    requires_approval: bool | None = None
+    is_active: bool | None = None
+
 
