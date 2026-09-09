@@ -7,7 +7,8 @@ from app.models.club import Club
 from app.models.notice import Notice
 from app.models.attachment import Attachment
 from app.models.scope_audit_log import ScopeAuditLog
-from app.models.admin_scope import AdminDepartmentScope, AdminClubScope
+from app.models.admin_scope import AdminScope
+from app.models.org_unit import OrgUnit
 
 __all__ = [
     "Role",
@@ -19,6 +20,6 @@ __all__ = [
     "Notice",
     "Attachment",
     "ScopeAuditLog",
-    "AdminDepartmentScope",
-    "AdminClubScope",
+    "AdminScope",
+    "OrgUnit",
 ]

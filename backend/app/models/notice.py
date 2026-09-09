@@ -7,11 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.models.course import Course
     from app.models.user import User
     from app.models.category import Category
-    from app.models.club import Club
-    from app.models.department import Department
+    from app.models.org_unit import OrgUnit
     from app.models.attachment import Attachment
 
 
@@ -38,17 +36,11 @@ class Notice(Base):
     audience: Mapped[Audience] = mapped_column(
         Enum(Audience, native_enum=False), nullable=False
     )
-    department_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("departments.id"), nullable=True
+    org_unit_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("org_units.id"), nullable=True
     )
     category_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("categories.id"), nullable=False
-    )
-    club_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("clubs.id"), nullable=True
-    )
-    course_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("courses.id"), nullable=True
     )
     status: Mapped[NoticeStatus] = mapped_column(
         Enum(NoticeStatus, native_enum=False),
@@ -68,8 +60,6 @@ class Notice(Base):
     )
 
     author: Mapped["User"] = relationship(back_populates="notices")
-    department: Mapped["Department | None"] = relationship(back_populates="notices")
-    club: Mapped["Club | None"] = relationship(back_populates="notices")
+    org_unit: Mapped["OrgUnit | None"] = relationship()
     category: Mapped["Category"] = relationship(back_populates="notices")
-    course: Mapped["Course | None"] = relationship(back_populates="notices")
     attachments: Mapped[list["Attachment"]] = relationship(back_populates="notice")

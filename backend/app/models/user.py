@@ -2,14 +2,12 @@ from datetime import datetime
 from sqlalchemy import Integer, String, DateTime, func, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
-from app.models.admin_scope import AdminDepartmentScope, AdminClubScope
 
 from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from app.models.role import Role
     from app.models.notice import Notice
-
+    from app.models.admin_scope import AdminScope
 
 
 class User(Base):
@@ -23,7 +21,10 @@ class User(Base):
     role_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("roles.id"), nullable=False
     )
-    requires_approval:Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    requires_approval: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    can_approve: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    can_post: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    can_manage_users: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -33,5 +34,9 @@ class User(Base):
     )
     role: Mapped["Role"] = relationship("Role", back_populates="users")
     notices: Mapped[list["Notice"]] = relationship(back_populates="author")
-    department_scopes: Mapped[list["AdminDepartmentScope"]] = relationship(back_populates="user")
-    club_scopes: Mapped[list["AdminClubScope"]] = relationship(back_populates="user")
+    scopes: Mapped[list["AdminScope"]] = relationship(
+        "AdminScope", foreign_keys="[AdminScope.admin_id]", back_populates="admin"
+    )
+    granted_scopes: Mapped[list["AdminScope"]] = relationship(
+        "AdminScope", foreign_keys="[AdminScope.granted_by_id]", back_populates="granted_by"
+    )

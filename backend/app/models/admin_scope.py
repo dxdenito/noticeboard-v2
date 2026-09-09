@@ -1,32 +1,31 @@
+import enum
 from datetime import datetime
-from sqlalchemy import DateTime, func, ForeignKey
+from sqlalchemy import Integer, String, DateTime, func, ForeignKey, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.models.user import User
-    from app.models.department import Department
-    from app.models.club import Club
+    from app.models.org_unit import OrgUnit
 
 
-class AdminDepartmentScope(Base):
-    __tablename__ = "admin_department_scopes"
-
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    department_id: Mapped[int] = mapped_column(ForeignKey("departments.id"), primary_key=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-    user: Mapped["User"] = relationship(back_populates="department_scopes")
-    department: Mapped["Department"] = relationship()
+class ScopeType(enum.Enum):
+    POST = "post"
+    APPROVE = "approve"
 
 
-class AdminClubScope(Base):
-    __tablename__ = "admin_club_scopes"
+class AdminScope(Base):
+    __tablename__ = "admin_scopes"
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    club_id: Mapped[int] = mapped_column(ForeignKey("clubs.id"), primary_key=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    admin_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    org_unit_id: Mapped[int] = mapped_column(ForeignKey("org_units.id"), nullable=False)
+    scope_type: Mapped[ScopeType] = mapped_column(Enum(ScopeType, native_enum=False), nullable=False)
+    granted_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    user: Mapped["User"] = relationship(back_populates="club_scopes")
-    club: Mapped["Club"] = relationship()
+    admin: Mapped["User"] = relationship("User", foreign_keys=[admin_id])
+    granted_by: Mapped["User"] = relationship("User", foreign_keys=[granted_by_id])
+    org_unit: Mapped["OrgUnit"] = relationship("OrgUnit")
