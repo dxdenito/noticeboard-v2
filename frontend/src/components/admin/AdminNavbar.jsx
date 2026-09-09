@@ -1,8 +1,11 @@
+import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import logo from "../../images/jkuatlogo.png"
 import React, { useRef } from 'react';
 
 export default function AdminNavbar(){
       const scrollRef = useRef(null);
+      const { user, loading, logout } = useAuth();
 
   // Sample menu items
   const menuItems = ['Home', 'Courses', 'Departments', 'Clubs', 'Staff', 'Students', 'Support', 'Careers'];
@@ -35,12 +38,23 @@ export default function AdminNavbar(){
         
 
         {/* Login Button */}
-        <a 
-          href="#login"
-          className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-5 py-2.5 rounded-md shadow-sm transition-colors cursor-pointer decoration-transparent"
-        >
-          LOGIN
-        </a>
+        {!loading && user ? (
+          <div className="flex items-center gap-3">
+            <Link to="/dashboard" className="text-green-700 text-sm font-bold hover:underline">
+              Dashboard
+            </Link>
+            <button onClick={logout} className="text-gray-500 text-sm font-semibold hover:text-red-600">
+              Log out
+            </button>
+          </div>
+        ) : (
+          <Link
+            to="/login"
+            className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-5 py-2.5 rounded-md shadow-sm transition-colors cursor-pointer decoration-transparent"
+          >
+            LOGIN
+          </Link>
+        )}
       </div>
 
     </nav>

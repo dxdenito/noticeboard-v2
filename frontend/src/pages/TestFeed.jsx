@@ -4,6 +4,8 @@ import { Lock } from 'lucide-react';
 import image from '../images/image-1.jpg';
 import { api } from '../api/client';
 import AudienceVerify from '../components/AudienceVerify';
+import { useNoticeSearch } from '../hooks/useNoticeSearc';
+import NoticeSearchInput from '../components/NoticeSearchInput';
 
 export default function AsymmetricNoticeboard() {
   const urgentScrollRef = useRef(null);
@@ -11,6 +13,9 @@ export default function AsymmetricNoticeboard() {
   const [loading, setLoading] = useState(true);
   const [audience, setAudience] = useState(null);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredNotices = useNoticeSearch(notices, searchQuery);
 
   async function loadFeed() {
     try {
@@ -32,8 +37,8 @@ export default function AsymmetricNoticeboard() {
     loadFeed();
   }
 
-  const pinned = notices.filter((n) => n.is_pinned_feed);
-  const rest = notices.filter((n) => !n.is_pinned_feed);
+  const pinned = filteredNotices.filter((n) => n.is_pinned_feed);
+  const rest = filteredNotices.filter((n) => !n.is_pinned_feed);
 
   function formatDateParts(isoString) {
     const d = new Date(isoString);
@@ -64,12 +69,20 @@ export default function AsymmetricNoticeboard() {
 
   return (
     <div className="w-full min-h-screen bg-white text-gray-900 font-sans p-4 md:p-8 select-none">
+    
       <div
         className="fixed inset-0 pointer-events-none z-0
                    bg-[url('./images/jkuatlogo.png')] bg-no-repeat bg-center
                    bg-[length:70vmin] opacity-[0.05]"
       />
+      <div className="flex justify-center">
+            <NoticeSearchInput
+              onChange={setSearchQuery}
+              placeholder="Search notices..."
+            />
+          </div>
       <div className="max-w-6xl mx-auto space-y-16">
+        
 
         {pinned.length > 0 && (
           <section className="space-y-6">
@@ -97,7 +110,7 @@ export default function AsymmetricNoticeboard() {
                     {notice.is_locked && <LockOverlay />}
                     <div className={notice.is_locked ? "flex w-full blur-sm pointer-events-none select-none" : "flex w-full"}>
                       <div
-                        className="w-16 bg-red-600 text-white flex flex-col items-center justify-center font-sans font-black py-4 leading-none relative z-10 pl-2 pr-4 shrink-0"
+                        className="w-16 bg-jkuat-green text-white flex flex-col items-center justify-center font-sans font-black py-4 leading-none relative z-10 pl-2 pr-4 shrink-0"
                         style={{ clipPath: 'polygon(0 0, 100% 0, 75% 100%, 0 100%)' }}
                       >
                         <span className="text-xl tracking-tight">{day}</span>
@@ -147,6 +160,8 @@ export default function AsymmetricNoticeboard() {
               </span>
             </div>
 
+            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {rest.map((notice) => {
                 const { day, month, year } = formatDateParts(notice.created_at);
@@ -185,7 +200,7 @@ export default function AsymmetricNoticeboard() {
                         <div className="pt-2">
                           <Link
                             to={`/notices/${notice.id}`}
-                            className="w-full block text-center bg-green-600 hover:bg-green-700 text-white text-xs font-extrabold py-2.5 shadow-sm transition-colors cursor-pointer"
+                            className="w-full block text-center bg-jkuat-green hover:bg-jkuat-green/50 text-white text-xs font-extrabold py-2.5 shadow-sm transition-colors cursor-pointer"
                           >
                             READ MORE
                           </Link>
@@ -199,7 +214,9 @@ export default function AsymmetricNoticeboard() {
           </div>
 
           {rest.length === 0 && pinned.length === 0 && (
-            <p className="text-center text-xs font-medium text-gray-400 italic">No notices to show right now.</p>
+            <p className="text-center text-xs font-medium text-gray-400 italic">
+              {searchQuery ? "No notices match your search." : "No notices to show right now."}
+            </p>
           )}
         </section>
 

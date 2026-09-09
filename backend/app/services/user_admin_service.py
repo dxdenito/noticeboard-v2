@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from app.core.config import settings
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
-from app.schemas.user_schema import UserCreateByAdmin
+from app.schemas.user_schema import UserCreateByAdmin, UserUpdate
 from app.core.security import hash_password
 
 

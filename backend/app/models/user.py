@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import Integer, String, DateTime, func, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.models.admin_scope import AdminDepartmentScope, AdminClubScope
 
 from typing import TYPE_CHECKING
 
@@ -32,3 +33,5 @@ class User(Base):
     )
     role: Mapped["Role"] = relationship("Role", back_populates="users")
     notices: Mapped[list["Notice"]] = relationship(back_populates="author")
+    department_scopes: Mapped[list["AdminDepartmentScope"]] = relationship(back_populates="user")
+    club_scopes: Mapped[list["AdminClubScope"]] = relationship(back_populates="user")

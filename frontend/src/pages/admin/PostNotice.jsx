@@ -10,6 +10,7 @@ export default function PostNotice() {
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
   const [files, setFiles] = useState([]);
+  const [scope, setScope] = useState(null);
 
   const [categories, setCategories] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -43,6 +44,15 @@ export default function PostNotice() {
       })
       .catch((err) => showError(err.message));
   }, []);
+  useEffect(() => {
+  if (user?.role.name === "web_admin") {
+    api.get(`/users/${user.id}/scope`).then(setScope).catch(() => {});
+  }
+}, [user]);
+
+const allowedDepartments = scope ? departments.filter((d) => scope.department_ids.includes(d.id)) : departments;
+const allowedClubs = scope ? clubs.filter((c) => scope.club_ids.includes(c.id)) : clubs;
+const allowedCourses = scope ? courses.filter((c) => scope.department_ids.includes(c.department_id)) : courses;
 
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -140,7 +150,7 @@ export default function PostNotice() {
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
         >
           <option value="">No department tag</option>
-          {departments.map((d) => (
+          {allowedDepartments.map((d) => (
             <option key={d.id} value={d.id}>{d.name}</option>
           ))}
         </select>
@@ -151,7 +161,7 @@ export default function PostNotice() {
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
         >
           <option value="">No club tag</option>
-          {clubs.map((c) => (
+          {allowedClubs.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
@@ -162,7 +172,7 @@ export default function PostNotice() {
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
         >
           <option value="">No course tag</option>
-          {courses.map((c) => (
+          {allowedCourses.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>

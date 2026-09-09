@@ -6,5 +6,19 @@ from app.models.category import Category
 from app.models.club import Club
 from app.models.notice import Notice
 from app.models.attachment import Attachment
+from app.models.scope_audit_log import ScopeAuditLog
+from app.models.admin_scope import AdminDepartmentScope, AdminClubScope
 
-__all__ = ["Role", "User", "Course", "Department", "Category", "Club", "Notice","Attachment"]
+__all__ = [
+    "Role",
+    "User",
+    "Course",
+    "Department",
+    "Category",
+    "Club",
+    "Notice",
+    "Attachment",
+    "ScopeAuditLog",
+    "AdminDepartmentScope",
+    "AdminClubScope",
+]

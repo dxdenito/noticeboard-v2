@@ -4,6 +4,8 @@ from fastapi import HTTPException
 from app.repositories.notice_repository import NoticeRepository
 from app.models.notice import NoticeStatus, Notice, Audience
 from app.schemas.notice_schema import NoticeCreate, NoticeRead, NoticeUpdate
+from app.repositories.admin_scope_repository import AdminScopeRepository
+from app.repositories.course_repository import CourseRepository
 
 from app.models.user import User
 
@@ -11,6 +13,30 @@ class NoticeService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.notice_repo = NoticeRepository(db)
+        self.scope_repo = AdminScopeRepository(db)
+        self.course_repo = CourseRepository(db)
+
+    async def _check_scope(self, data: NoticeCreate | NoticeUpdate, current_user: User) -> None:
+        if current_user.role.name == "super_admin":
+            return
+
+        if data.department_id is not None:
+            allowed_departments = await self.scope_repo.list_department_ids(current_user.id)
+            if data.department_id not in allowed_departments:
+                raise HTTPException(403, "You are not scoped to post for this department")
+
+        if data.club_id is not None:
+            allowed_clubs = await self.scope_repo.list_club_ids(current_user.id)
+            if data.club_id not in allowed_clubs:
+                raise HTTPException(403, "You are not scoped to post for this club")
+
+        if data.course_id is not None:
+            course = await self.course_repo.get_by_id(data.course_id)
+            if not course:
+                raise HTTPException(400, "Invalid course")
+            allowed_departments = await self.scope_repo.list_department_ids(current_user.id)
+            if course.department_id not in allowed_departments:
+                raise HTTPException(403, "You are not scoped to post for this course's department")
 
     async def get_by_id(self, notice_id: int, viewer_audience: Audience | None) -> NoticeRead:
         notice = await self.notice_repo.get_by_id(notice_id)
@@ -25,6 +51,7 @@ class NoticeService:
         return data
 
     async def create(self, data: NoticeCreate, current_user: User) -> Notice:
+        await self._check_scope(data, current_user)
         if current_user.role.name == "super_admin" or not current_user.requires_approval:
             status = NoticeStatus.APPROVED
         else:
@@ -205,6 +232,7 @@ class NoticeService:
         return await self.notice_repo.list_pinned_site(limit)
 
     async def update(self, notice_id: int, data: NoticeUpdate, current_user: User) -> Notice:
+        await self._check_scope(data, current_user)
         notice = await self.notice_repo.get_by_id(notice_id)
         if not notice:
             raise HTTPException(404, "Notice not found")
@@ -228,6 +256,7 @@ class NoticeService:
         return reloaded
 
     async def delete(self, notice_id: int, current_user: User) -> None:
+        
         notice = await self.notice_repo.get_by_id(notice_id)
         if not notice:
             raise HTTPException(404, "Notice not found")

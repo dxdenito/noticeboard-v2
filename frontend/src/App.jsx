@@ -16,6 +16,7 @@ import ManageTags from "./pages/admin/ManageTags";
 import PinnedNotices from "./pages/admin/PinnedNotices";
 import NoticeDetail from "./pages/NoticeDetail";
 import EditNotice from "./pages/admin/EditNotice";
+import BrowseNotices from "./pages/BrowseNotices";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="/" element={<AsymmetricNoticeboard />} />
           <Route path="/login" element={<AsymmetricLoginPage />} />
           <Route path="/notices/:id" element={<NoticeDetail />} />
+          <Route path="/browse/:kind" element={<BrowseNotices />} />
         </Route>
         
         <Route element={<AdminRoute><AdminLayout/></AdminRoute>}>

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
+import { useAuth } from "../../context/AuthContext";
+
 
 export default function EditNotice() {
   const { id } = useParams();
@@ -14,6 +16,8 @@ export default function EditNotice() {
   const [courses, setCourses] = useState([]);
   const [form, setForm] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
+  const [scope, setScope] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -41,6 +45,15 @@ export default function EditNotice() {
       })
       .catch((err) => showError(err.message));
   }, [id]);
+  useEffect(() => {
+  if (user?.role.name === "web_admin") {
+    api.get(`/users/${user.id}/scope`).then(setScope).catch(() => {});
+  }
+}, [user]);
+
+const allowedDepartments = scope ? departments.filter((d) => scope.department_ids.includes(d.id)) : departments;
+const allowedClubs = scope ? clubs.filter((c) => scope.club_ids.includes(c.id)) : clubs;
+const allowedCourses = scope ? courses.filter((c) => scope.department_ids.includes(c.department_id)) : courses;
 
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));

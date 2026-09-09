@@ -27,6 +27,56 @@ export default function ManageUsers() {
   const [editingUser, setEditingUser] = useState(null);
   const { showError, showSuccess } = useToast();
 
+  const [workflowUser, setWorkflowUser] = useState(null);
+const [allDepartments, setAllDepartments] = useState([]);
+const [allClubs, setAllClubs] = useState([]);
+const [userScope, setUserScope] = useState(null);
+const [logs, setLogs] = useState([]);
+
+async function openWorkflow(u) {
+  setWorkflowUser(u);
+  try {
+    const [depts, clubList, scope, logData] = await Promise.all([
+      api.get("/departments/"),
+      api.get("/clubs/"),
+      api.get(`/users/${u.id}/scope`),
+      api.get(`/users/${u.id}/scope/logs`),
+    ]);
+    setAllDepartments(depts);
+    setAllClubs(clubList);
+    setUserScope(scope);
+    setLogs(logData);
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function toggleDepartmentScope(departmentId, currentlyGranted) {
+  try {
+    if (currentlyGranted) {
+      await api.delete(`/users/${workflowUser.id}/scope/departments/${departmentId}`);
+    } else {
+      await api.post(`/users/${workflowUser.id}/scope/departments/${departmentId}`);
+    }
+    openWorkflow(workflowUser); // reload scope + logs
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function toggleClubScope(clubId, currentlyGranted) {
+  try {
+    if (currentlyGranted) {
+      await api.delete(`/users/${workflowUser.id}/scope/clubs/${clubId}`);
+    } else {
+      await api.post(`/users/${workflowUser.id}/scope/clubs/${clubId}`);
+    }
+    openWorkflow(workflowUser);
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
   async function loadUsers() {
     try {
       const data = await api.get("/users/");
@@ -155,6 +205,11 @@ export default function ManageUsers() {
               >
                 <Pencil size={14} /> Edit
               </button>
+              {u.role.name === "web_admin" && (
+                <button onClick={() => openWorkflow(u)} className="text-xs text-blue-600 font-semibold">
+                  Workflow
+                </button>
+              )}
               {u.id !== currentUser.id && (
                 <button
                   onClick={() => toggleActive(u)}
@@ -203,6 +258,69 @@ export default function ManageUsers() {
           </div>
         </div>
       )}
+
+      {workflowUser && (
+  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-xl p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto">
+      <h3 className="font-bold text-lg mb-1">Workflow: {workflowUser.full_name}</h3>
+      <p className="text-xs text-gray-400 mb-4">Assign which departments and clubs this admin can post for.</p>
+
+      <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Departments</h4>
+      <div className="space-y-1 mb-4">
+        {allDepartments.map((d) => {
+          const granted = userScope?.department_ids.includes(d.id);
+          return (
+            <label key={d.id} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={granted}
+                onChange={() => toggleDepartmentScope(d.id, granted)}
+              />
+              {d.name}
+            </label>
+          );
+        })}
+      </div>
+
+      <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Clubs</h4>
+      <div className="space-y-1 mb-6">
+        {allClubs.map((c) => {
+          const granted = userScope?.club_ids.includes(c.id);
+          return (
+            <label key={c.id} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={granted}
+                onChange={() => toggleClubScope(c.id, granted)}
+              />
+              {c.name}
+            </label>
+          );
+        })}
+      </div>
+
+      <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Activity Log</h4>
+      <div className="border border-gray-100 rounded-lg divide-y divide-gray-100 mb-4 text-xs">
+        {logs.map((log) => (
+          <div key={log.id} className="px-3 py-2 flex justify-between">
+            <span>
+              <span className={log.action === "granted" ? "text-jkuat-green font-bold" : "text-jkuat-red font-bold"}>
+                {log.action}
+              </span>{" "}
+              {log.scope_type} — {log.scope_name}
+            </span>
+            <span className="text-gray-400">{new Date(log.created_at).toLocaleDateString()}</span>
+          </div>
+        ))}
+        {logs.length === 0 && <p className="px-3 py-4 text-gray-400 text-center">No activity yet.</p>}
+      </div>
+
+      <button onClick={() => setWorkflowUser(null)} className="w-full bg-gray-100 text-gray-700 font-bold py-2 rounded-lg">
+        Close
+      </button>
+    </div>
+  </div>
+)}
     </div>
   );
 }
