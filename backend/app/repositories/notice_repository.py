@@ -34,9 +34,7 @@ class NoticeRepository:
                 selectinload(Notice.category),
                 selectinload(Notice.attachments),
                 selectinload(Notice.author),
-                selectinload(Notice.department),
-                selectinload(Notice.club),
-                selectinload(Notice.course),
+                selectinload(Notice.org_unit),
             )
             .order_by(Notice.created_at.desc())
             .limit(limit)
@@ -47,11 +45,9 @@ class NoticeRepository:
 
     async def get_by_id(self,notice_id:int)->Notice|None:
         statement = select(Notice).where(Notice.id == notice_id).options(
-                selectinload(Notice.department),
+                selectinload(Notice.org_unit),
                 selectinload(Notice.attachments),
-                selectinload(Notice.club),
                 selectinload(Notice.category),
-                selectinload(Notice.course),
                 selectinload(Notice.author)
             )
         result = await self.db.execute(statement)
@@ -92,9 +88,7 @@ class NoticeRepository:
                     selectinload(Notice.attachments),
                     selectinload(Notice.category),
                     selectinload(Notice.author),
-                    selectinload(Notice.department),
-                    selectinload(Notice.club),
-                    selectinload(Notice.course),
+                    selectinload(Notice.org_unit),
                 )
                 .order_by(Notice.created_at.asc())
                 .limit(limit)
@@ -108,18 +102,8 @@ class NoticeRepository:
         result = await self.db.execute(statement)
         return list(result.scalars().all())
 
-    async def list_by_course_id(self,course_id: int)-> list[Notice]:
-        statement = (select(Notice).where(Notice.course_id == course_id))
-        result = await self.db.execute(statement)
-        return list(result.scalars().all())
-
-    async def list_by_club_id(self,club_id: int)-> list[Notice]:
-        statement = (select(Notice).where(Notice.club_id == club_id))
-        result = await self.db.execute(statement)
-        return list(result.scalars().all())
-
-    async def list_by_department_id(self,department_id: int)-> list[Notice]:
-        statement = (select(Notice).where(Notice.department_id == department_id))
+    async def list_by_org_unit_id(self, org_unit_id: int) -> list[Notice]:
+        statement = (select(Notice).where(Notice.org_unit_id == org_unit_id))
         result = await self.db.execute(statement)
         return list(result.scalars().all())
     
@@ -137,9 +121,7 @@ class NoticeRepository:
                 selectinload(Notice.attachments),
                 selectinload(Notice.category),
                 selectinload(Notice.author),
-                selectinload(Notice.department),
-                selectinload(Notice.club),
-                selectinload(Notice.course),
+                selectinload(Notice.org_unit),
             )
             .order_by(Notice.created_at.desc())
             .limit(limit)
@@ -155,9 +137,7 @@ class NoticeRepository:
                 selectinload(Notice.attachments),
                 selectinload(Notice.category),
                 selectinload(Notice.author),
-                selectinload(Notice.department),
-                selectinload(Notice.club),
-                selectinload(Notice.course),
+                selectinload(Notice.org_unit),
             )
             .order_by(Notice.created_at.desc())
             .limit(limit)

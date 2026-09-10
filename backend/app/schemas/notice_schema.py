@@ -10,10 +10,8 @@ class NoticeCreate(BaseModel):
     title: str
     body: str
     category_id: int
-    audience:Audience
-    department_id: int | None = None
-    club_id: int | None = None
-    course_id: int | None = None
+    audience: Audience
+    org_unit_id: int | None = None
     expiry_date: datetime | None = None
 
 class NoticeRead(BaseModel):
@@ -23,9 +21,7 @@ class NoticeRead(BaseModel):
     category: CategoryRead
     author_id: int
     audience: Audience
-    department_id: int | None 
-    club_id: int | None 
-    course_id: int | None 
+    org_unit_id: int | None
     expiry_date: datetime | None
     created_at: datetime
     is_pinned_feed: bool = False  
@@ -42,7 +38,5 @@ class NoticeUpdate(BaseModel):
     body: str | None = None
     category_id: int | None = None
     audience: Audience | None = None
-    department_id: int | None = None
-    club_id: int | None = None
-    course_id: int | None = None
+    org_unit_id: int | None = None
     expiry_date: datetime | None = None

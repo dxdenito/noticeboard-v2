@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import require_roles, get_db
 from app.services.category_service import CategoryService
-from app.services.department_service import DepartmentService
 from app.schemas.category_schema import CategoryCreate, CategoryRead
 from app.models.user import User
 
@@ -50,4 +49,3 @@ async def delete_category(
 ):
     service = CategoryService(db)
     await service.delete(current_user,id)
-

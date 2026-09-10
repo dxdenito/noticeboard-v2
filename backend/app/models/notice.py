@@ -60,6 +60,6 @@ class Notice(Base):
     )
 
     author: Mapped["User"] = relationship(back_populates="notices")
-    org_unit: Mapped["OrgUnit | None"] = relationship()
+    org_unit: Mapped["OrgUnit | None"] = relationship(back_populates="notices")
     category: Mapped["Category"] = relationship(back_populates="notices")
     attachments: Mapped[list["Attachment"]] = relationship(back_populates="notice")

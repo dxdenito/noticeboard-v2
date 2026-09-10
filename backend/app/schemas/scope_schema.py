@@ -1,21 +1,21 @@
 from pydantic import BaseModel
 from datetime import datetime
-from app.models.scope_audit_log import ScopeType, ScopeAction
+from app.models.admin_scope import ScopeType
 
 
 class ScopeSummary(BaseModel):
-    department_ids: list[int]
-    club_ids: list[int]
+    post_org_unit_ids: list[int]
+    approve_org_unit_ids: list[int]
 
 
-class ScopeAuditLogRead(BaseModel):
+class ScopeRead(BaseModel):
     id: int
+    admin_id: int
+    org_unit_id: int
     scope_type: ScopeType
-    scope_id: int
-    scope_name: str
-    action: ScopeAction
-    performed_by_id: int
-    created_at: datetime
+    granted_by_id: int
+    granted_at: datetime
+    revoked_at: datetime | None
 
     class Config:
         from_attributes = True

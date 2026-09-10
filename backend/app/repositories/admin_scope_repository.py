@@ -1,67 +1,39 @@
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models.admin_scope import AdminDepartmentScope, AdminClubScope
-from app.models.scope_audit_log import ScopeAuditLog, ScopeType, ScopeAction
+from app.models.admin_scope import AdminScope, ScopeType
 
 
 class AdminScopeRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def list_department_ids(self, user_id: int) -> list[int]:
-        statement = select(AdminDepartmentScope.department_id).where(AdminDepartmentScope.user_id == user_id)
+    async def list_org_unit_ids(self, admin_id: int, scope_type: ScopeType) -> list[int]:
+        statement = select(AdminScope.org_unit_id).where(
+            AdminScope.admin_id == admin_id,
+            AdminScope.scope_type == scope_type,
+            AdminScope.revoked_at.is_(None),
+        )
         result = await self.db.execute(statement)
         return list(result.scalars().all())
 
-    async def list_club_ids(self, user_id: int) -> list[int]:
-        statement = select(AdminClubScope.club_id).where(AdminClubScope.user_id == user_id)
-        result = await self.db.execute(statement)
-        return list(result.scalars().all())
-
-    async def get_department_scope(self, user_id: int, department_id: int) -> AdminDepartmentScope | None:
-        statement = select(AdminDepartmentScope).where(
-            AdminDepartmentScope.user_id == user_id,
-            AdminDepartmentScope.department_id == department_id,
+    async def get_active_scope(
+        self, admin_id: int, org_unit_id: int, scope_type: ScopeType
+    ) -> AdminScope | None:
+        statement = select(AdminScope).where(
+            AdminScope.admin_id == admin_id,
+            AdminScope.org_unit_id == org_unit_id,
+            AdminScope.scope_type == scope_type,
+            AdminScope.revoked_at.is_(None),
         )
         result = await self.db.execute(statement)
         return result.scalars().first()
 
-    async def get_club_scope(self, user_id: int, club_id: int) -> AdminClubScope | None:
-        statement = select(AdminClubScope).where(
-            AdminClubScope.user_id == user_id,
-            AdminClubScope.club_id == club_id,
-        )
-        result = await self.db.execute(statement)
-        return result.scalars().first()
-
-    async def add_department_scope(self, scope: AdminDepartmentScope) -> AdminDepartmentScope:
+    async def add_scope(self, scope: AdminScope) -> AdminScope:
         self.db.add(scope)
         await self.db.commit()
         return scope
 
-    async def remove_department_scope(self, scope: AdminDepartmentScope) -> None:
-        await self.db.delete(scope)
+    async def revoke_scope(self, scope: AdminScope) -> None:
+        scope.revoked_at = datetime.now(timezone.utc)
         await self.db.commit()
-
-    async def add_club_scope(self, scope: AdminClubScope) -> AdminClubScope:
-        self.db.add(scope)
-        await self.db.commit()
-        return scope
-
-    async def remove_club_scope(self, scope: AdminClubScope) -> None:
-        await self.db.delete(scope)
-        await self.db.commit()
-
-    async def add_log(self, log: ScopeAuditLog) -> ScopeAuditLog:
-        self.db.add(log)
-        await self.db.commit()
-        return log
-
-    async def list_logs_for_user(self, user_id: int) -> list[ScopeAuditLog]:
-        statement = (
-            select(ScopeAuditLog)
-            .where(ScopeAuditLog.user_id == user_id)
-            .order_by(ScopeAuditLog.created_at.desc())
-        )
-        result = await self.db.execute(statement)
-        return list(result.scalars().all())
