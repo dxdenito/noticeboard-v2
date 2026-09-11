@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
 from app.repositories.org_unit_repository import OrgUnitRepository
+from app.services.audit_log_service import AuditLogService
 from app.models.org_unit import OrgUnit
 from app.schemas.org_unit_schema import OrgUnitCreate, OrgUnitUpdate, OrgUnitTreeNode
 from app.models.user import User
@@ -11,6 +12,7 @@ class OrgUnitService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.org_unit_repo = OrgUnitRepository(db)
+        self.audit_log_service = AuditLogService(db)
 
     def _check_write_permission(self, current_user: User) -> None:
         if current_user.role.name != "super_admin":
@@ -25,7 +27,12 @@ class OrgUnitService:
                 raise HTTPException(404, "Parent org unit not found")
 
         org_unit = OrgUnit(**data.model_dump())
-        return await self.org_unit_repo.add(org_unit)
+        created = await self.org_unit_repo.add(org_unit)
+
+        await self.audit_log_service.log(
+            current_user, "org_unit.create", "org_unit", created.id, created.name,
+        )
+        return created
 
     async def update(self, org_unit_id: int, data: OrgUnitUpdate, current_user: User) -> OrgUnit:
         self._check_write_permission(current_user)
@@ -47,10 +54,14 @@ class OrgUnitService:
             setattr(org_unit, field, value)
 
         await self.org_unit_repo.add(org_unit)
+
+        await self.audit_log_service.log(
+            current_user, "org_unit.update", "org_unit", org_unit.id, org_unit.name,
+        )
         return org_unit
 
     async def _creates_cycle(self, moving_id: int, new_parent: OrgUnit) -> bool:
-        current = new_parent
+        current: OrgUnit | None = new_parent
         while current is not None:
             if current.id == moving_id:
                 return True
@@ -70,7 +81,12 @@ class OrgUnitService:
         if children:
             raise HTTPException(400, "Cannot delete an org unit that still has children")
 
+        name = org_unit.name
         await self.org_unit_repo.delete(org_unit)
+
+        await self.audit_log_service.log(
+            current_user, "org_unit.delete", "org_unit", org_unit_id, name,
+        )
 
     async def get_by_id(self, org_unit_id: int) -> OrgUnit:
         org_unit = await self.org_unit_repo.get_by_id(org_unit_id)

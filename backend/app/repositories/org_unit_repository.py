@@ -25,4 +25,9 @@ class OrgUnitRepository:
     async def add(self, org_unit: OrgUnit) -> OrgUnit:
         self.db.add(org_unit)
         await self.db.commit()
+        await self.db.refresh(org_unit)
         return org_unit
+
+    async def delete(self, org_unit: OrgUnit) -> None:
+        await self.db.delete(org_unit)
+        await self.db.commit()

@@ -3,6 +3,7 @@ from fastapi import HTTPException
 
 from app.repositories.notice_repository import NoticeRepository
 from app.services.permission_service import PermissionService
+from app.services.audit_log_service import AuditLogService
 from app.models.notice import NoticeStatus, Notice, Audience
 from app.schemas.notice_schema import NoticeCreate, NoticeRead, NoticeUpdate
 
@@ -17,6 +18,7 @@ class NoticeService:
         self.db = db
         self.notice_repo = NoticeRepository(db)
         self.permission_service = PermissionService(db)
+        self.audit_log_service = AuditLogService(db)
 
     async def _check_post_scope(self, data: NoticeCreate | NoticeUpdate, current_user: User) -> None:
         org_unit_id = getattr(data, "org_unit_id", None)
@@ -54,6 +56,11 @@ class NoticeService:
         reloaded = await self.notice_repo.get_by_id(created.id)
         if reloaded is None:
             raise HTTPException(500, "Notice creation failed unexpectedly")
+
+        await self.audit_log_service.log(
+            current_user, "notice.create", "notice", reloaded.id, reloaded.title,
+            details=f"status: {status.value}",
+        )
         return reloaded
 
     async def list_pending(self, current_user: User, viewer_audience: Audience | None, limit: int, offset: int) -> list[Notice]:
@@ -78,6 +85,10 @@ class NoticeService:
         reloaded = await self.notice_repo.get_by_id(notice_id)
         if reloaded is None:
             raise HTTPException(500, "Notice update failed unexpectedly")
+
+        await self.audit_log_service.log(
+            current_user, "notice.approve", "notice", reloaded.id, reloaded.title,
+        )
         return reloaded
 
     async def reject(self, notice_id: int, current_user: User) -> Notice:
@@ -94,6 +105,10 @@ class NoticeService:
         reloaded = await self.notice_repo.get_by_id(notice_id)
         if reloaded is None:
             raise HTTPException(500, "Notice update failed unexpectedly")
+
+        await self.audit_log_service.log(
+            current_user, "notice.reject", "notice", reloaded.id, reloaded.title,
+        )
         return reloaded
 
     async def pin_site(self, notice_id: int, current_user: User) -> Notice:
@@ -113,6 +128,10 @@ class NoticeService:
         reloaded = await self.notice_repo.get_by_id(notice_id)
         if reloaded is None:
             raise HTTPException(500, "Notice update failed unexpectedly")
+
+        await self.audit_log_service.log(
+            current_user, "notice.pin_site", "notice", reloaded.id, reloaded.title,
+        )
         return reloaded
 
     async def unpin_site(self, notice_id: int, current_user: User) -> Notice:
@@ -129,6 +148,10 @@ class NoticeService:
         reloaded = await self.notice_repo.get_by_id(notice_id)
         if reloaded is None:
             raise HTTPException(500, "Notice update failed unexpectedly")
+
+        await self.audit_log_service.log(
+            current_user, "notice.unpin_site", "notice", reloaded.id, reloaded.title,
+        )
         return reloaded
 
     async def pin_feed(self, notice_id: int, current_user: User) -> Notice:
@@ -145,6 +168,10 @@ class NoticeService:
         reloaded = await self.notice_repo.get_by_id(notice_id)
         if reloaded is None:
             raise HTTPException(500, "Notice update failed unexpectedly")
+
+        await self.audit_log_service.log(
+            current_user, "notice.pin_feed", "notice", reloaded.id, reloaded.title,
+        )
         return reloaded
 
     async def unpin_feed(self, notice_id: int, current_user: User) -> Notice:
@@ -161,6 +188,10 @@ class NoticeService:
         reloaded = await self.notice_repo.get_by_id(notice_id)
         if reloaded is None:
             raise HTTPException(500, "Notice update failed unexpectedly")
+
+        await self.audit_log_service.log(
+            current_user, "notice.unpin_feed", "notice", reloaded.id, reloaded.title,
+        )
         return reloaded
 
     def audience_allows(self, notice_audience: Audience, viewer_audience: Audience | None) -> bool:
@@ -223,6 +254,10 @@ class NoticeService:
         reloaded = await self.notice_repo.get_by_id(notice_id)
         if reloaded is None:
             raise HTTPException(500, "Notice update failed unexpectedly")
+
+        await self.audit_log_service.log(
+            current_user, "notice.update", "notice", reloaded.id, reloaded.title,
+        )
         return reloaded
 
     async def delete(self, notice_id: int, current_user: User) -> None:
@@ -233,4 +268,10 @@ class NoticeService:
         if current_user.role.name != "super_admin" and notice.author_id != current_user.id:
             raise HTTPException(403, "Only the author or a super_admin can delete this notice")
 
+        title = notice.title
+        notice_id_for_log = notice.id
         await self.notice_repo.delete(notice)
+
+        await self.audit_log_service.log(
+            current_user, "notice.delete", "notice", notice_id_for_log, title,
+        )
