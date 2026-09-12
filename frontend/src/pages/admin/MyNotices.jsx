@@ -68,8 +68,10 @@ export default function MyNotices() {
                 {n.title}
               </h3>
 
-              <p className="text-xs text-gray-500 line-clamp-2 flex-1">
-                {n.body}
+              <p className="text-xs text-gray-500 line-clamp-2 flex-1"
+              dangerouslySetInnerHTML={{ __html: n.body }}
+              >
+                
               </p>
 
               <p className="text-[11px] text-gray-400 pt-2 border-t border-gray-100">

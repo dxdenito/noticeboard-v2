@@ -10,6 +10,7 @@ from app.models.user import User
 TRUSTED_POST_ROLES = ("super_admin", "corporate_super_admin", "corporate_admin")
 TRUSTED_APPROVE_ROLES = ("super_admin", "corporate_super_admin")
 SCOPED_APPROVE_ROLES = ("corporate_admin",)
+RIGHTS_ELIGIBLE_ROLES = ("ict_sub_admin", "corporate_admin")
 
 
 class PermissionService:
@@ -17,6 +18,13 @@ class PermissionService:
         self.db = db
         self.scope_repo = AdminScopeRepository(db)
         self.org_unit_repo = OrgUnitRepository(db)
+
+    def has_right(self, user: User, flag_name: str) -> bool:
+        if user.role.name == "super_admin":
+            return True
+        if user.role.name in RIGHTS_ELIGIBLE_ROLES:
+            return bool(getattr(user, flag_name, False))
+        return False
 
     async def _ancestor_ids(self, org_unit: OrgUnit) -> list[int]:
         ids: list[int] = []

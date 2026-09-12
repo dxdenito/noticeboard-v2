@@ -8,7 +8,7 @@ export default function Footer(){
                 <div className="mb-6 md:mb-0">
                     <a href="" className="flex items-center">
                         <img src={logo} className="h-7 me-3" alt="FlowBite Logo" />
-                        <span className="text-heading self-center text-2xl font-semibold whitespace-nowrap">Jkuat Noticeboard</span>
+                        <span className="text-heading self-center text-2xl font-semibold whitespace-nowrap">JKUAT Noticeboard</span>
                     </a>
                 </div>
                 <div className="grid grid-cols-2 gap-8 sm:gap-6 sm:grid-cols-3">
@@ -16,7 +16,7 @@ export default function Footer(){
                         <h2 className="mb-6 text-sm font-semibold text-heading uppercase">Resources</h2>
                         <ul className="text-body font-medium">
                             <li className="mb-4">
-                                <a href="https://www.jkuat.ac.ke/" className="hover:underline">Jkuat website</a>
+                                <a href="https://www.jkuat.ac.ke/" className="hover:underline">JKUAT website</a>
                             </li>
                             <li>
                                 <a href="https://portal.jkuat.ac.ke/" className="hover:underline">Student Portal</a>

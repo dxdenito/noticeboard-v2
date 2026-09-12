@@ -4,9 +4,7 @@ from fastapi import APIRouter, Depends
 from app.schemas.notice_schema import NoticeRead, NoticeCreate,NoticeUpdate
 from app.models.user import User
 from app.services.notice_service import NoticeService
-from app.core.deps import get_db, get_current_user
-from app.core.deps import get_viewer_audience
-from app.models.notice import Audience
+from app.core.deps import get_db, get_current_user, get_optional_current_user
 from app.core.deps import get_viewer_audience
 from app.models.notice import Audience
 
@@ -52,7 +50,7 @@ async def get_my_notices(
 ):
     notice_service = NoticeService(db)
     notices = await notice_service.list_my_notices(current_user, limit, offset)
-    return [NoticeRead.model_validate(n) for n in notices]\
+    return [NoticeRead.model_validate(n) for n in notices]
 
 @router.get("/manage", response_model=list[NoticeRead])
 async def get_manage_notices(
@@ -99,21 +97,21 @@ async def delete_notice(
 async def get_notice(
     id: int,
     viewer_audience: Audience | None = Depends(get_viewer_audience),
+    current_user: User | None = Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     notice_service = NoticeService(db)
-    return await notice_service.get_by_id(id, viewer_audience)
-
+    return await notice_service.get_by_id(id, viewer_audience, current_user)
         
 @router.patch("/{id}/approve", response_model=NoticeRead)
-async def approve_notice(notice_id:int, current_user: User = Depends(get_current_user),db: AsyncSession = Depends(get_db)):
+async def approve_notice(id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     noticeservice = NoticeService(db)
-    return await noticeservice.approve(notice_id, current_user)
+    return await noticeservice.approve(id, current_user)
 
 @router.patch("/{id}/reject", response_model=NoticeRead)
-async def reject_notice(notice_id:int, current_user: User = Depends(get_current_user),db: AsyncSession = Depends(get_db)):
+async def reject_notice(id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     noticeservice = NoticeService(db)
-    return await noticeservice.reject(notice_id, current_user)
+    return await noticeservice.reject(id, current_user)
 
 @router.patch("/{id}/pin-site", response_model=NoticeRead)
 async def pin_notice_site(

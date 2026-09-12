@@ -37,7 +37,7 @@ export default function Navbar(){
           <Link
             key={item.to}
             to={item.to}
-            className="text-gray-700 font-semibold hover:text-green-600 whitespace-nowrap transition-colors py-2 px-3 rounded-md hover:bg-gray-50 cursor-pointer decoration-transparent"
+            className="text-gray-700 font-semibold hover:text-jkuat-red whitespace-nowrap transition-colors py-2 px-3 rounded-md hover:bg-gray-50 cursor-pointer decoration-transparent"
           >
             {item.label}
           </Link>

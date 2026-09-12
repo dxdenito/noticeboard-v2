@@ -25,6 +25,11 @@ class User(Base):
     can_approve: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     can_post: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     can_manage_users: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    can_manage_tags: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    can_manage_org_units: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    can_pin: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    can_assign_post_scope: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    can_assign_approve_scope: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

@@ -10,6 +10,7 @@ from app.routes.attachments import router as attachment_router, download_router
 from app.routes.admin_scope import router as admin_scope_router
 from app.routes.org_units import router as org_unit_router
 from app.routes.audit_logs import router as audit_log_router
+from app.routes.roles import router as role_router
 
 
 app = FastAPI(title="Noticeboard V2 API")
@@ -32,6 +33,7 @@ app.include_router(download_router)
 app.include_router(admin_scope_router)
 app.include_router(org_unit_router)
 app.include_router(audit_log_router)
+app.include_router(role_router)
 
 @app.get("/health")
 def health_check() -> dict:

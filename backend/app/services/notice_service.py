@@ -26,6 +26,10 @@ class NoticeService:
         if not allowed:
             raise HTTPException(403, "You are not scoped to post for this org unit")
 
+    def _check_pin_permission(self, current_user: User) -> None:
+        if not self.permission_service.has_right(current_user, "can_pin"):
+            raise HTTPException(403, "You don't have permission to pin notices")
+
     async def _resolve_status(self, current_user: User) -> NoticeStatus:
         if current_user.role.name in AUTO_PUBLISH_ROLES:
             return NoticeStatus.APPROVED
@@ -33,9 +37,23 @@ class NoticeService:
             return NoticeStatus.APPROVED
         return NoticeStatus.PENDING
 
-    async def get_by_id(self, notice_id: int, viewer_audience: Audience | None) -> NoticeRead:
+    async def get_by_id(self, notice_id: int, viewer_audience: Audience | None, current_user: User | None = None) -> NoticeRead:
         notice = await self.notice_repo.get_by_id(notice_id)
-        if not notice or notice.status != NoticeStatus.APPROVED:
+        if not notice:
+            raise HTTPException(404, "Notice not found")
+
+        if notice.status == NoticeStatus.PENDING:
+            can_preview = current_user is not None and (
+                notice.author_id == current_user.id
+                or await self.permission_service.can_approve_for(current_user, notice.org_unit_id)
+            )
+            if not can_preview:
+                raise HTTPException(404, "Notice not found")
+            data = NoticeRead.model_validate(notice)
+            data.is_locked = False
+            return data
+
+        if notice.status != NoticeStatus.APPROVED:
             raise HTTPException(404, "Notice not found")
 
         allowed = self.audience_allows(notice.audience, viewer_audience)
@@ -112,8 +130,7 @@ class NoticeService:
         return reloaded
 
     async def pin_site(self, notice_id: int, current_user: User) -> Notice:
-        if current_user.role.name != "super_admin":
-            raise HTTPException(403, "Only an admin can pin notices")
+        self._check_pin_permission(current_user)
 
         notice = await self.notice_repo.get_by_id(notice_id)
         if not notice:
@@ -135,8 +152,7 @@ class NoticeService:
         return reloaded
 
     async def unpin_site(self, notice_id: int, current_user: User) -> Notice:
-        if current_user.role.name != "super_admin":
-            raise HTTPException(403, "Only an admin can pin notices")
+        self._check_pin_permission(current_user)
 
         notice = await self.notice_repo.get_by_id(notice_id)
         if not notice:
@@ -155,8 +171,7 @@ class NoticeService:
         return reloaded
 
     async def pin_feed(self, notice_id: int, current_user: User) -> Notice:
-        if current_user.role.name != "super_admin":
-            raise HTTPException(403, "Only an admin can pin notices")
+        self._check_pin_permission(current_user)
 
         notice = await self.notice_repo.get_by_id(notice_id)
         if not notice:
@@ -175,8 +190,7 @@ class NoticeService:
         return reloaded
 
     async def unpin_feed(self, notice_id: int, current_user: User) -> Notice:
-        if current_user.role.name != "super_admin":
-            raise HTTPException(403, "Only an admin can pin notices")
+        self._check_pin_permission(current_user)
 
         notice = await self.notice_repo.get_by_id(notice_id)
         if not notice:

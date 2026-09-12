@@ -3,8 +3,9 @@ from fastapi import HTTPException
 
 from app.repositories.org_unit_repository import OrgUnitRepository
 from app.services.audit_log_service import AuditLogService
+from app.services.permission_service import PermissionService
 from app.models.org_unit import OrgUnit
-from app.schemas.org_unit_schema import OrgUnitCreate, OrgUnitUpdate, OrgUnitTreeNode
+from app.schemas.org_unit_schema import OrgUnitCreate, OrgUnitUpdate, OrgUnitRead, OrgUnitTreeNode
 from app.models.user import User
 
 
@@ -13,10 +14,11 @@ class OrgUnitService:
         self.db = db
         self.org_unit_repo = OrgUnitRepository(db)
         self.audit_log_service = AuditLogService(db)
+        self.permission_service = PermissionService(db)
 
     def _check_write_permission(self, current_user: User) -> None:
-        if current_user.role.name != "super_admin":
-            raise HTTPException(403, "Only super_admin can manage org units")
+        if not self.permission_service.has_right(current_user, "can_manage_org_units"):
+            raise HTTPException(403, "You don't have permission to manage org units")
 
     async def create(self, data: OrgUnitCreate, current_user: User) -> OrgUnit:
         self._check_write_permission(current_user)
@@ -104,8 +106,10 @@ class OrgUnitService:
             by_parent.setdefault(unit.parent_id, []).append(unit)
 
         def build(unit: OrgUnit) -> OrgUnitTreeNode:
-            node = OrgUnitTreeNode.model_validate(unit)
-            node.children = [build(child) for child in by_parent.get(unit.id, [])]
-            return node
+            base = OrgUnitRead.model_validate(unit)
+            return OrgUnitTreeNode(
+                **base.model_dump(),
+                children=[build(child) for child in by_parent.get(unit.id, [])],
+            )
 
         return [build(root) for root in by_parent.get(None, [])]

@@ -1,24 +1,26 @@
 import AdminNavbar from "../components/admin/AdminNavbar";
-import { Menu, X, LayoutDashboard, PlusCircle, FileText, CheckSquare, Users, Tags, Pin, LogOut } from "lucide-react";
+import { Menu, X, LayoutDashboard, PlusCircle, FileText, CheckSquare, Users, Tags, Pin, LogOut, Network } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 import { useLocation, Link, Outlet } from "react-router-dom";
+import { isAdmin, canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits } from "../lib/permissions";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "web_admin"] },
-  { to: "/dashboard/post", label: "Post Notice", icon: PlusCircle, roles: ["super_admin", "web_admin"] },
-  { to: "/dashboard/my-notices", label: "My Notices", icon: FileText, roles: ["super_admin", "web_admin"] },
-  { to: "/dashboard/review-queue", label: "Review Queue", icon: CheckSquare, roles: ["super_admin"] },
-  { to: "/dashboard/users", label: "Manage Users", icon: Users, roles: ["super_admin"] },
-  { to: "/dashboard/tags", label: "Manage Tags", icon: Tags, roles: ["super_admin", "web_admin"] },
-  { to: "/dashboard/pinned", label: "Pinned Notices", icon: Pin, roles: ["super_admin"] },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: isAdmin },
+  { to: "/dashboard/post", label: "Post Notice", icon: PlusCircle, show: isAdmin },
+  { to: "/dashboard/my-notices", label: "My Notices", icon: FileText, show: isAdmin },
+  { to: "/dashboard/review-queue", label: "Review Queue", icon: CheckSquare, show: canApprove },
+  { to: "/dashboard/users", label: "Manage Users", icon: Users, show: canManageUsers },
+  { to: "/dashboard/tags", label: "Manage Tags", icon: Tags, show: canCreateCategories },
+  { to: "/dashboard/pinned", label: "Pinned Notices", icon: Pin, show: canPin },
+  { to: "/dashboard/org-units", label: "Org Units", icon: Network, show: canManageOrgUnits },
 ];
 export default function AdminLayout(){
     const { user, logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const location = useLocation();
     
-    const visibleItems = NAV_ITEMS.filter((item) => user && item.roles.includes(user.role.name));
+    const visibleItems = NAV_ITEMS.filter((item) => item.show(user));
     return(
         <>
             <AdminNavbar/>
@@ -82,4 +84,3 @@ export default function AdminLayout(){
         </>
     )
 }
-

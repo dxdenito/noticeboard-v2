@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from app.repositories.admin_scope_repository import AdminScopeRepository
 from app.repositories.org_unit_repository import OrgUnitRepository
 from app.services.audit_log_service import AuditLogService
+from app.services.permission_service import PermissionService
 from app.models.admin_scope import AdminScope, ScopeType
 from app.models.user import User
 
@@ -14,15 +15,21 @@ class AdminScopeService:
         self.scope_repo = AdminScopeRepository(db)
         self.org_unit_repo = OrgUnitRepository(db)
         self.audit_log_service = AuditLogService(db)
+        self.permission_service = PermissionService(db)
 
     def _check_grant_permission(self, performed_by: User, scope_type: ScopeType) -> None:
         role_name = performed_by.role.name
         if scope_type == ScopeType.POST:
-            if role_name != "super_admin":
-                raise HTTPException(403, "Only super_admin can grant post scopes")
+            allowed = role_name == "super_admin" or self.permission_service.has_right(performed_by, "can_assign_post_scope")
+            if not allowed:
+                raise HTTPException(403, "You don't have permission to grant post scopes")
         elif scope_type == ScopeType.APPROVE:
-            if role_name not in ("super_admin", "corporate_super_admin"):
-                raise HTTPException(403, "Only super_admin or corporate_super_admin can grant approve scopes")
+            allowed = (
+                role_name in ("super_admin", "corporate_super_admin")
+                or self.permission_service.has_right(performed_by, "can_assign_approve_scope")
+            )
+            if not allowed:
+                raise HTTPException(403, "You don't have permission to grant approve scopes")
 
     async def grant_scope(
         self, admin_id: int, org_unit_id: int, scope_type: ScopeType, performed_by: User

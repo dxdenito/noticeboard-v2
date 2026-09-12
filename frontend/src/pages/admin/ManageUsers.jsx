@@ -3,12 +3,22 @@ import { Pencil, Power, PowerOff } from "lucide-react";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
+import { canAssignPostScope, canAssignApproveScope } from "../../lib/permissions";
 
 const AVATAR_COLORS = [
   "bg-red-500", "bg-orange-500", "bg-amber-500", "bg-lime-500",
   "bg-green-500", "bg-teal-500", "bg-cyan-500", "bg-blue-500",
   "bg-indigo-500", "bg-violet-500", "bg-purple-500", "bg-pink-500",
 ];
+
+const SCOPED_ROLES = ["web_admin", "corporate_admin", "ict_sub_admin"];
+const RIGHTS_ELIGIBLE_ROLES = ["ict_sub_admin", "corporate_admin"];
+
+const EMPTY_CAPS = {
+  can_approve: false, can_post: false, can_manage_users: false,
+  can_manage_tags: false, can_manage_org_units: false, can_pin: false,
+  can_assign_post_scope: false, can_assign_approve_scope: false,
+};
 
 function avatarColor(id) {
   return AVATAR_COLORS[id % AVATAR_COLORS.length];
@@ -18,64 +28,113 @@ function initials(fullName) {
   return fullName.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
 }
 
+function roleLabel(name) {
+  return name.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+}
+
+function flattenTree(nodes, path = []) {
+  let result = [];
+  for (const node of nodes) {
+    const label = [...path, node.name].join(" › ");
+    result.push({ id: node.id, label });
+    if (node.children && node.children.length > 0) {
+      result = result.concat(flattenTree(node.children, [...path, node.name]));
+    }
+  }
+  return result;
+}
+
+function CapabilityCheckboxes({ role, values, onChange }) {
+  if (!RIGHTS_ELIGIBLE_ROLES.includes(role)) return null;
+
+  const fields = role === "ict_sub_admin"
+    ? [
+        ["can_post", "Can post"],
+        ["can_approve", "Can approve"],
+        ["can_manage_users", "Can manage users"],
+        ["can_manage_tags", "Can manage tags"],
+        ["can_manage_org_units", "Can manage org units"],
+        ["can_pin", "Can pin notices"],
+        ["can_assign_post_scope", "Can assign post scope"],
+        ["can_assign_approve_scope", "Can assign approve scope"],
+      ]
+    : [
+        ["can_manage_users", "Can manage users"],
+        ["can_manage_tags", "Can manage tags"],
+        ["can_manage_org_units", "Can manage org units"],
+        ["can_pin", "Can pin notices"],
+        ["can_assign_post_scope", "Can assign post scope"],
+        ["can_assign_approve_scope", "Can assign approve scope"],
+      ];
+
+  return (
+    <div className="sm:col-span-2 flex flex-wrap gap-x-4 gap-y-2 border border-gray-100 rounded-lg px-3 py-2.5">
+      {fields.map(([key, label]) => (
+        <label key={key} className="flex items-center gap-1.5 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={values[key]}
+            onChange={(e) => onChange(key, e.target.checked)}
+          />
+          {label}
+        </label>
+      ))}
+    </div>
+  );
+}
+
 export default function ManageUsers() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ email: "", password: "", full_name: "", role_id: "", requires_approval: "false" });
+  const [form, setForm] = useState({
+    email: "", password: "", full_name: "", role_id: "",
+    requires_approval: "false", ...EMPTY_CAPS,
+  });
   const [submitting, setSubmitting] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const { showError, showSuccess } = useToast();
 
   const [workflowUser, setWorkflowUser] = useState(null);
-const [allDepartments, setAllDepartments] = useState([]);
-const [allClubs, setAllClubs] = useState([]);
-const [userScope, setUserScope] = useState(null);
-const [logs, setLogs] = useState([]);
+  const [orgUnits, setOrgUnits] = useState([]);
+  const [userScope, setUserScope] = useState(null);
 
-async function openWorkflow(u) {
-  setWorkflowUser(u);
-  try {
-    const [depts, clubList, scope, logData] = await Promise.all([
-      api.get("/departments/"),
-      api.get("/clubs/"),
-      api.get(`/users/${u.id}/scope`),
-      api.get(`/users/${u.id}/scope/logs`),
-    ]);
-    setAllDepartments(depts);
-    setAllClubs(clubList);
-    setUserScope(scope);
-    setLogs(logData);
-  } catch (err) {
-    showError(err.message);
+  const canGrantPost = canAssignPostScope(currentUser);
+  const canGrantApprove = canAssignApproveScope(currentUser);
+
+  function roleNameOf(roleId) {
+    const role = roles.find((r) => String(r.id) === String(roleId));
+    return role?.name;
   }
-}
 
-async function toggleDepartmentScope(departmentId, currentlyGranted) {
-  try {
-    if (currentlyGranted) {
-      await api.delete(`/users/${workflowUser.id}/scope/departments/${departmentId}`);
-    } else {
-      await api.post(`/users/${workflowUser.id}/scope/departments/${departmentId}`);
+  async function openWorkflow(u) {
+    setWorkflowUser(u);
+    try {
+      const [tree, scope] = await Promise.all([
+        api.get("/org-units/tree"),
+        api.get(`/users/${u.id}/scope`),
+      ]);
+      setOrgUnits(flattenTree(tree));
+      setUserScope(scope);
+    } catch (err) {
+      showError(err.message);
     }
-    openWorkflow(workflowUser); // reload scope + logs
-  } catch (err) {
-    showError(err.message);
   }
-}
 
-async function toggleClubScope(clubId, currentlyGranted) {
-  try {
-    if (currentlyGranted) {
-      await api.delete(`/users/${workflowUser.id}/scope/clubs/${clubId}`);
-    } else {
-      await api.post(`/users/${workflowUser.id}/scope/clubs/${clubId}`);
+  async function toggleScope(scopeType, orgUnitId, currentlyGranted) {
+    try {
+      if (currentlyGranted) {
+        await api.delete(`/users/${workflowUser.id}/scope/${scopeType}/${orgUnitId}`);
+      } else {
+        await api.post(`/users/${workflowUser.id}/scope/${scopeType}/${orgUnitId}`);
+      }
+      const scope = await api.get(`/users/${workflowUser.id}/scope`);
+      setUserScope(scope);
+    } catch (err) {
+      showError(err.message);
     }
-    openWorkflow(workflowUser);
-  } catch (err) {
-    showError(err.message);
   }
-}
 
   async function loadUsers() {
     try {
@@ -88,22 +147,41 @@ async function toggleClubScope(clubId, currentlyGranted) {
     }
   }
 
-  useEffect(() => { loadUsers(); }, []);
+  async function loadRoles() {
+    try {
+      const data = await api.get("/roles/");
+      setRoles(data);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  useEffect(() => { loadUsers(); loadRoles(); }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const selectedRole = roleNameOf(form.role_id);
+      const eligible = RIGHTS_ELIGIBLE_ROLES.includes(selectedRole);
       const payload = {
         email: form.email,
         password: form.password,
         full_name: form.full_name,
         role_id: Number(form.role_id),
-        requires_approval: form.requires_approval === "" ? null : form.requires_approval === "true",
+        requires_approval: selectedRole === "web_admin" ? form.requires_approval === "true" : null,
+        can_approve: eligible ? form.can_approve : null,
+        can_post: eligible ? form.can_post : null,
+        can_manage_users: eligible ? form.can_manage_users : null,
+        can_manage_tags: eligible ? form.can_manage_tags : null,
+        can_manage_org_units: eligible ? form.can_manage_org_units : null,
+        can_pin: eligible ? form.can_pin : null,
+        can_assign_post_scope: eligible ? form.can_assign_post_scope : null,
+        can_assign_approve_scope: eligible ? form.can_assign_approve_scope : null,
       };
       await api.post("/users/", payload);
       showSuccess("User created");
-      setForm({ email: "", password: "", full_name: "", role_id: "", requires_approval: "false" });
+      setForm({ email: "", password: "", full_name: "", role_id: "", requires_approval: "false", ...EMPTY_CAPS });
       loadUsers();
     } catch (err) {
       showError(err.message);
@@ -124,9 +202,19 @@ async function toggleClubScope(clubId, currentlyGranted) {
 
   async function saveEdit() {
     try {
+      const selectedRole = roleNameOf(editingUser.role_id);
+      const eligible = RIGHTS_ELIGIBLE_ROLES.includes(selectedRole);
       await api.patch(`/users/${editingUser.id}`, {
         role_id: Number(editingUser.role_id),
-        requires_approval: editingUser.role_id === "2" ? editingUser.requires_approval === "true" : null,
+        requires_approval: selectedRole === "web_admin" ? editingUser.requires_approval === "true" : null,
+        can_approve: eligible ? editingUser.can_approve : null,
+        can_post: eligible ? editingUser.can_post : null,
+        can_manage_users: eligible ? editingUser.can_manage_users : null,
+        can_manage_tags: eligible ? editingUser.can_manage_tags : null,
+        can_manage_org_units: eligible ? editingUser.can_manage_org_units : null,
+        can_pin: eligible ? editingUser.can_pin : null,
+        can_assign_post_scope: eligible ? editingUser.can_assign_post_scope : null,
+        can_assign_approve_scope: eligible ? editingUser.can_assign_approve_scope : null,
       });
       showSuccess("User updated");
       setEditingUser(null);
@@ -137,6 +225,9 @@ async function toggleClubScope(clubId, currentlyGranted) {
   }
 
   if (loading) return <div className="text-gray-400">Loading...</div>;
+
+  const formSelectedRole = roleNameOf(form.role_id);
+  const editSelectedRole = editingUser ? roleNameOf(editingUser.role_id) : null;
 
   return (
     <div>
@@ -156,10 +247,10 @@ async function toggleClubScope(clubId, currentlyGranted) {
           onChange={(e) => setForm((f) => ({ ...f, role_id: e.target.value }))}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm">
           <option value="">Select role</option>
-          <option value="1">super_admin</option>
-          <option value="2">web_admin</option>
+          {roles.map((r) => <option key={r.id} value={r.id}>{roleLabel(r.name)}</option>)}
         </select>
-        {form.role_id === "2" && (
+
+        {formSelectedRole === "web_admin" && (
           <select value={form.requires_approval}
             onChange={(e) => setForm((f) => ({ ...f, requires_approval: e.target.value }))}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm sm:col-span-2">
@@ -167,6 +258,13 @@ async function toggleClubScope(clubId, currentlyGranted) {
             <option value="true">Requires approval</option>
           </select>
         )}
+
+        <CapabilityCheckboxes
+          role={formSelectedRole}
+          values={form}
+          onChange={(key, val) => setForm((f) => ({ ...f, [key]: val }))}
+        />
+
         <button type="submit" disabled={submitting}
           className="sm:col-span-2 bg-jkuat-green text-white font-bold py-2.5 rounded-lg disabled:opacity-50">
           {submitting ? "Creating..." : "Create User"}
@@ -188,7 +286,7 @@ async function toggleClubScope(clubId, currentlyGranted) {
 
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-bold uppercase text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                {u.role.name}
+                {roleLabel(u.role.name)}
               </span>
               {!u.is_active && (
                 <span className="text-[10px] font-bold uppercase text-jkuat-red bg-red-50 px-2 py-0.5 rounded">
@@ -197,17 +295,29 @@ async function toggleClubScope(clubId, currentlyGranted) {
               )}
             </div>
 
-            <div className="flex gap-2 pt-2 border-t border-gray-100">
+            <div className="flex gap-2 pt-2 border-t border-gray-100 flex-wrap">
               <button
-                onClick={() => setEditingUser({ id: u.id, role_id: String(u.role.id), requires_approval: String(u.requires_approval ?? false) })}
+                onClick={() => setEditingUser({
+                  id: u.id,
+                  role_id: String(u.role.id),
+                  requires_approval: String(u.requires_approval ?? false),
+                  can_approve: u.can_approve ?? false,
+                  can_post: u.can_post ?? false,
+                  can_manage_users: u.can_manage_users ?? false,
+                  can_manage_tags: u.can_manage_tags ?? false,
+                  can_manage_org_units: u.can_manage_org_units ?? false,
+                  can_pin: u.can_pin ?? false,
+                  can_assign_post_scope: u.can_assign_post_scope ?? false,
+                  can_assign_approve_scope: u.can_assign_approve_scope ?? false,
+                })}
                 aria-label="Edit user"
                 className="flex items-center gap-1 text-xs text-jkuat-green font-semibold"
               >
                 <Pencil size={14} /> Edit
               </button>
-              {u.role.name === "web_admin" && (
+              {SCOPED_ROLES.includes(u.role.name) && (canGrantPost || canGrantApprove) && (
                 <button onClick={() => openWorkflow(u)} className="text-xs text-blue-600 font-semibold">
-                  Workflow
+                  Scope
                 </button>
               )}
               {u.id !== currentUser.id && (
@@ -234,10 +344,10 @@ async function toggleClubScope(clubId, currentlyGranted) {
               onChange={(e) => setEditingUser((prev) => ({ ...prev, role_id: e.target.value }))}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
             >
-              <option value="1">super_admin</option>
-              <option value="2">web_admin</option>
+              {roles.map((r) => <option key={r.id} value={r.id}>{roleLabel(r.name)}</option>)}
             </select>
-            {editingUser.role_id === "2" && (
+
+            {editSelectedRole === "web_admin" && (
               <select
                 value={editingUser.requires_approval}
                 onChange={(e) => setEditingUser((prev) => ({ ...prev, requires_approval: e.target.value }))}
@@ -247,6 +357,15 @@ async function toggleClubScope(clubId, currentlyGranted) {
                 <option value="true">Requires approval</option>
               </select>
             )}
+
+            <div className="mb-4">
+              <CapabilityCheckboxes
+                role={editSelectedRole}
+                values={editingUser}
+                onChange={(key, val) => setEditingUser((prev) => ({ ...prev, [key]: val }))}
+              />
+            </div>
+
             <div className="flex gap-2">
               <button onClick={saveEdit} className="flex-1 bg-jkuat-green text-white font-bold py-2 rounded-lg">
                 Save
@@ -260,67 +379,55 @@ async function toggleClubScope(clubId, currentlyGranted) {
       )}
 
       {workflowUser && (
-  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-    <div className="bg-white rounded-xl p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto">
-      <h3 className="font-bold text-lg mb-1">Workflow: {workflowUser.full_name}</h3>
-      <p className="text-xs text-gray-400 mb-4">Assign which departments and clubs this admin can post for.</p>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto">
+            <h3 className="font-bold text-lg mb-1">Scope: {workflowUser.full_name}</h3>
+            <p className="text-xs text-gray-400 mb-4">
+              {workflowUser.role.name === "ict_sub_admin"
+                ? "No scope selected means unrestricted (global) for that action."
+                : "Assign which org units this admin can act on."}
+            </p>
 
-      <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Departments</h4>
-      <div className="space-y-1 mb-4">
-        {allDepartments.map((d) => {
-          const granted = userScope?.department_ids.includes(d.id);
-          return (
-            <label key={d.id} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={granted}
-                onChange={() => toggleDepartmentScope(d.id, granted)}
-              />
-              {d.name}
-            </label>
-          );
-        })}
-      </div>
+            {canGrantPost && (workflowUser.role.name === "web_admin" || workflowUser.role.name === "ict_sub_admin") && (
+              <>
+                <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Post scope</h4>
+                <div className="space-y-1 mb-4 max-h-48 overflow-y-auto">
+                  {orgUnits.map((u) => {
+                    const granted = userScope?.post_org_unit_ids.includes(u.id);
+                    return (
+                      <label key={u.id} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={!!granted} onChange={() => toggleScope("post", u.id, granted)} />
+                        {u.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
-      <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Clubs</h4>
-      <div className="space-y-1 mb-6">
-        {allClubs.map((c) => {
-          const granted = userScope?.club_ids.includes(c.id);
-          return (
-            <label key={c.id} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={granted}
-                onChange={() => toggleClubScope(c.id, granted)}
-              />
-              {c.name}
-            </label>
-          );
-        })}
-      </div>
+            {canGrantApprove && (workflowUser.role.name === "corporate_admin" || workflowUser.role.name === "ict_sub_admin") && (
+              <>
+                <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Approve scope</h4>
+                <div className="space-y-1 mb-4 max-h-48 overflow-y-auto">
+                  {orgUnits.map((u) => {
+                    const granted = userScope?.approve_org_unit_ids.includes(u.id);
+                    return (
+                      <label key={u.id} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={!!granted} onChange={() => toggleScope("approve", u.id, granted)} />
+                        {u.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
-      <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Activity Log</h4>
-      <div className="border border-gray-100 rounded-lg divide-y divide-gray-100 mb-4 text-xs">
-        {logs.map((log) => (
-          <div key={log.id} className="px-3 py-2 flex justify-between">
-            <span>
-              <span className={log.action === "granted" ? "text-jkuat-green font-bold" : "text-jkuat-red font-bold"}>
-                {log.action}
-              </span>{" "}
-              {log.scope_type} — {log.scope_name}
-            </span>
-            <span className="text-gray-400">{new Date(log.created_at).toLocaleDateString()}</span>
+            <button onClick={() => setWorkflowUser(null)} className="w-full bg-gray-100 text-gray-700 font-bold py-2 rounded-lg">
+              Close
+            </button>
           </div>
-        ))}
-        {logs.length === 0 && <p className="px-3 py-4 text-gray-400 text-center">No activity yet.</p>}
-      </div>
-
-      <button onClick={() => setWorkflowUser(null)} className="w-full bg-gray-100 text-gray-700 font-bold py-2 rounded-lg">
-        Close
-      </button>
-    </div>
-  </div>
-)}
+        </div>
+      )}
     </div>
   );
 }
