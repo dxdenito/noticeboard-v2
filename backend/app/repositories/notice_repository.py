@@ -48,7 +48,8 @@ class NoticeRepository:
                 selectinload(Notice.org_unit),
                 selectinload(Notice.attachments),
                 selectinload(Notice.category),
-                selectinload(Notice.author)
+                selectinload(Notice.author),
+                selectinload(Notice.reviewed_by),
             )
         result = await self.db.execute(statement)
         return result.scalars().first()
@@ -129,6 +130,26 @@ class NoticeRepository:
         )
         result = await self.db.execute(statement)
         return list(result.scalars().all())
+
+    async def list_all(self, limit: int = 50, offset: int = 0, search: str | None = None) -> list[Notice]:
+        statement = (
+            select(Notice)
+            .options(
+                selectinload(Notice.attachments),
+                selectinload(Notice.category),
+                selectinload(Notice.author),
+                selectinload(Notice.reviewed_by),
+                selectinload(Notice.org_unit),
+            )
+        )
+
+        if search:
+            statement = statement.where(Notice.title.ilike(f"%{search}%"))
+
+        statement = statement.order_by(Notice.created_at.desc()).limit(limit).offset(offset)
+        result = await self.db.execute(statement)
+        return list(result.scalars().all())
+
     async def list_by_author(self, author_id: int, limit: int = 50, offset: int = 0) -> list[Notice]:
         statement = (
             select(Notice)

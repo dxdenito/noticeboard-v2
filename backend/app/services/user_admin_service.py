@@ -12,7 +12,7 @@ TRUSTED_ROLE_NAMES = ("super_admin",)
 CAPABILITY_FIELDS = (
     "can_approve", "can_post", "can_manage_users",
     "can_manage_tags", "can_manage_org_units", "can_pin",
-    "can_assign_post_scope", "can_assign_approve_scope",
+    "can_assign_post_scope", "can_assign_approve_scope", "can_delete_notice",
 )
 
 
@@ -63,6 +63,7 @@ class UserAdminService:
             can_pin=data.can_pin,
             can_assign_post_scope=data.can_assign_post_scope,
             can_assign_approve_scope=data.can_assign_approve_scope,
+            can_delete_notice=data.can_delete_notice,
             is_active=True,
         )
         await self.user_repo.create_user(new_user)

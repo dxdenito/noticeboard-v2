@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
+from datetime import datetime, timezone
 
 from app.repositories.notice_repository import NoticeRepository
 from app.services.permission_service import PermissionService
@@ -29,6 +30,15 @@ class NoticeService:
     def _check_pin_permission(self, current_user: User) -> None:
         if not self.permission_service.has_right(current_user, "can_pin"):
             raise HTTPException(403, "You don't have permission to pin notices")
+
+    def _check_delete_permission(self, current_user: User, notice: Notice) -> None:
+        if notice.author_id == current_user.id:
+            return
+        if current_user.role.name == "super_admin":
+            return
+        if self.permission_service.has_right(current_user, "can_delete_notice"):
+            return
+        raise HTTPException(403, "You don't have permission to delete this notice")
 
     async def _resolve_status(self, current_user: User) -> NoticeStatus:
         if current_user.role.name in AUTO_PUBLISH_ROLES:
@@ -98,6 +108,8 @@ class NoticeService:
             raise HTTPException(403, "You are not scoped to approve this notice")
 
         notice.status = NoticeStatus.APPROVED
+        notice.reviewed_by_id = current_user.id
+        notice.reviewed_at = datetime.now(timezone.utc)
         await self.notice_repo.update(notice)
 
         reloaded = await self.notice_repo.get_by_id(notice_id)
@@ -118,6 +130,8 @@ class NoticeService:
             raise HTTPException(403, "You are not scoped to reject this notice")
 
         notice.status = NoticeStatus.REJECTED
+        notice.reviewed_by_id = current_user.id
+        notice.reviewed_at = datetime.now(timezone.utc)
         await self.notice_repo.update(notice)
 
         reloaded = await self.notice_repo.get_by_id(notice_id)
@@ -239,6 +253,11 @@ class NoticeService:
             raise HTTPException(403, "Admin access required")
         return await self.notice_repo.list_all_approved(limit, offset)
 
+    async def list_all_for_oversight(self, current_user: User, limit: int, offset: int, search: str | None = None) -> list[Notice]:
+        if current_user.role.name not in ("super_admin", "ict_sub_admin", "corporate_admin"):
+            raise HTTPException(403, "You don't have permission to view all notices")
+        return await self.notice_repo.list_all(limit, offset, search)
+
     async def can_access_notice(self, notice_id: int, current_user: User | None, viewer_audience: Audience | None) -> bool:
         notice = await self.notice_repo.get_by_id(notice_id)
         if not notice or notice.status != NoticeStatus.APPROVED:
@@ -279,8 +298,7 @@ class NoticeService:
         if not notice:
             raise HTTPException(404, "Notice not found")
 
-        if current_user.role.name != "super_admin" and notice.author_id != current_user.id:
-            raise HTTPException(403, "Only the author or a super_admin can delete this notice")
+        self._check_delete_permission(current_user, notice)
 
         title = notice.title
         notice_id_for_log = notice.id

@@ -4,7 +4,7 @@ import { Lock } from 'lucide-react';
 import image from '../images/image-1.jpg';
 import { api } from '../api/client';
 import AudienceVerify from '../components/AudienceVerify';
-import { useNoticeSearch } from '../hooks/useNoticeSearc';
+import { useNoticeSearch } from '../hooks/useNoticeSearch';
 import NoticeSearchInput from '../components/NoticeSearchInput';
 
 export default function AsymmetricNoticeboard() {
@@ -68,27 +68,26 @@ export default function AsymmetricNoticeboard() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-white text-gray-900 font-sans p-4 md:p-8 select-none">
-    
+    <div className="w-full min-h-screen bg-jkuat-green/10 text-gray-900 font-sans p-4 md:p-8 select-none">
       <div
         className="fixed inset-0 pointer-events-none z-0
                    bg-[url('./images/jkuatlogo.png')] bg-no-repeat bg-center
                    bg-[length:70vmin] opacity-[0.05]"
       />
-      <div className="flex justify-center">
-            <NoticeSearchInput
-              onChange={setSearchQuery}
-              placeholder="Search notices..."
-            />
-          </div>
       <div className="max-w-6xl mx-auto space-y-16">
-        
+
+        <div className="flex justify-center pt-2">
+          <NoticeSearchInput
+            onChange={setSearchQuery}
+            placeholder="Search notices..."
+          />
+        </div>
 
         {pinned.length > 0 && (
           <section className="space-y-6">
             <div className="flex items-center gap-3">
-              <span className="w-2.5 h-6 bg-red-600 rounded-sm transform skew-x-12 inline-block"></span>
-              <h2 className="text-base font-extrabold tracking-wider text-red-600 uppercase">
+              <span className="w-2.5 h-6 bg-jkuat-blue rounded-sm transform skew-x-12 inline-block"></span>
+              <h2 className="text-base font-extrabold tracking-wider text-jkuat-blue uppercase">
                 Pinned Notices
               </h2>
             </div>
@@ -126,17 +125,17 @@ export default function AsymmetricNoticeboard() {
                         />
                         <div className="flex-1 flex flex-col justify-between h-full min-w-0">
                           <div>
-                            <span className="inline-block text-red-600 text-[10px] font-extrabold tracking-wider uppercase bg-red-50 px-2 py-0.5 rounded mb-1.5">
+                            <span className="inline-block text-jkuat-blue text-[10px] font-extrabold tracking-wider uppercase bg-jkuat-blue/10 px-2 py-0.5 rounded mb-1.5">
                               {notice.category_id ? `Category ${notice.category.name}` : "General"}
                             </span>
-                            <h3 className="font-extrabold text-sm text-gray-900 leading-snug line-clamp-2 hover:text-red-600 cursor-pointer transition-colors">
+                            <h3 className="font-extrabold text-sm text-gray-900 leading-snug line-clamp-2 hover:text-jkuat-blue cursor-pointer transition-colors">
                               {notice.title}
                             </h3>
                           </div>
                           <div className="flex justify-end">
                             <Link
                               to={`/notices/${notice.id}`}
-                              className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-extrabold px-4 py-2 transition-colors shadow-sm cursor-pointer"
+                              className="bg-jkuat-blue hover:bg-jkuat-blue/80 text-white text-[11px] font-extrabold px-4 py-2 transition-colors shadow-sm cursor-pointer"
                             >
                               Read More
                             </Link>
@@ -151,7 +150,7 @@ export default function AsymmetricNoticeboard() {
           </section>
         )}
 
-        <section className="space-y-12">
+        <section className="space-y-8">
           <div className="space-y-8">
             <div className="text-center relative flex items-center justify-center">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
@@ -160,9 +159,7 @@ export default function AsymmetricNoticeboard() {
               </span>
             </div>
 
-            
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {rest.map((notice) => {
                 const { day, month, year } = formatDateParts(notice.created_at);
                 return (
@@ -200,7 +197,7 @@ export default function AsymmetricNoticeboard() {
                         <div className="pt-2">
                           <Link
                             to={`/notices/${notice.id}`}
-                            className="w-full block text-center bg-jkuat-green hover:bg-jkuat-green/50 text-white text-xs font-extrabold py-2.5 shadow-sm transition-colors cursor-pointer"
+                            className="w-full block text-center bg-green-600 hover:bg-green-700 text-white text-xs font-extrabold py-2.5 shadow-sm transition-colors cursor-pointer"
                           >
                             READ MORE
                           </Link>

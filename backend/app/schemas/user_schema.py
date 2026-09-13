@@ -22,6 +22,7 @@ class UserRead(BaseModel):
     can_pin: bool | None
     can_assign_post_scope: bool | None
     can_assign_approve_scope: bool | None
+    can_delete_notice: bool | None
 
     class Config:
         from_attributes = True
@@ -49,6 +50,7 @@ class UserCreateByAdmin(BaseModel):
     can_pin: bool | None = None
     can_assign_post_scope: bool | None = None
     can_assign_approve_scope: bool | None = None
+    can_delete_notice: bool | None = None
 
 class UserUpdate(BaseModel):
     full_name: str | None = None
@@ -62,4 +64,5 @@ class UserUpdate(BaseModel):
     can_pin: bool | None = None
     can_assign_post_scope: bool | None = None
     can_assign_approve_scope: bool | None = None
+    can_delete_notice: bool | None = None
     is_active: bool | None = None

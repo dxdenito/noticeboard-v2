@@ -63,6 +63,18 @@ async def get_manage_notices(
     notices = await notice_service.list_for_admin(current_user, limit, offset)
     return [NoticeRead.model_validate(n) for n in notices]
 
+@router.get("/all", response_model=list[NoticeRead])
+async def get_all_notices(
+    limit: int = 50,
+    offset: int = 0,
+    search: str | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    notices = await notice_service.list_all_for_oversight(current_user, limit, offset, search)
+    return [NoticeRead.model_validate(n) for n in notices]
+
 @router.get("/pinned-site", response_model=list[NoticeRead])
 async def get_pinned_site_notices(
     limit: int = 10,
@@ -102,6 +114,7 @@ async def get_notice(
 ):
     notice_service = NoticeService(db)
     return await notice_service.get_by_id(id, viewer_audience, current_user)
+
         
 @router.patch("/{id}/approve", response_model=NoticeRead)
 async def approve_notice(id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):

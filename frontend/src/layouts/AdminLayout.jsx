@@ -1,14 +1,15 @@
 import AdminNavbar from "../components/admin/AdminNavbar";
-import { Menu, X, LayoutDashboard, PlusCircle, FileText, CheckSquare, Users, Tags, Pin, LogOut, Network, Building2, ScrollText } from "lucide-react";
+import { Menu, X, LayoutDashboard, PlusCircle, FileText, CheckSquare, Users, Tags, Pin, LogOut, Network, Building2, ScrollText, LayoutList } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 import { useLocation, Link, Outlet } from "react-router-dom";
-import { isAdmin, canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits, isCorporateSuperAdmin, canViewAuditLog } from "../lib/permissions";
+import { isAdmin, canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits, isCorporateSuperAdmin, canViewAuditLog, canViewAllNotices } from "../lib/permissions";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: isAdmin },
   { to: "/dashboard/post", label: "Post Notice", icon: PlusCircle, show: isAdmin },
   { to: "/dashboard/my-notices", label: "My Notices", icon: FileText, show: isAdmin },
+  { to: "/dashboard/all-notices", label: "All Notices", icon: LayoutList, show: canViewAllNotices },
   { to: "/dashboard/review-queue", label: "Review Queue", icon: CheckSquare, show: canApprove },
   { to: "/dashboard/users", label: "Manage Users", icon: Users, show: canManageUsers },
   { to: "/dashboard/corporate-admins", label: "Corporate Admins", icon: Building2, show: isCorporateSuperAdmin },

@@ -6,6 +6,15 @@ from app.models.notice import Audience, NoticeStatus
 from app.schemas.attachment_schema import AttachmentRead
 from app.schemas.category_schema import CategoryRead
 
+
+class NoticeAuthorRead(BaseModel):
+    id: int
+    full_name: str
+
+    class Config:
+        from_attributes = True
+
+
 class NoticeCreate(BaseModel):
     title: str
     body: str
@@ -20,12 +29,15 @@ class NoticeRead(BaseModel):
     body: str | None
     category: CategoryRead
     author_id: int
+    author: NoticeAuthorRead
     audience: Audience
     org_unit_id: int
     expiry_date: datetime | None
     created_at: datetime
     is_pinned_feed: bool = False  
     status: NoticeStatus
+    reviewed_by: NoticeAuthorRead | None = None
+    reviewed_at: datetime | None = None
     is_pinned_site: bool = False
     is_locked: bool = False
     attachments: list[AttachmentRead] = []

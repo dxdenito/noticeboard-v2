@@ -18,10 +18,11 @@ import PinnedNotices from "./pages/admin/PinnedNotices";
 import OrgUnits from "./pages/admin/OrgUnits";
 import ManageCorporateAdmins from "./pages/admin/ManageCorporateAdmins";
 import AuditLogViewer from "./pages/admin/AuditLogViewer";
+import AllNotices from "./pages/admin/AllNotices";
 import NoticeDetail from "./pages/NoticeDetail";
 import EditNotice from "./pages/admin/EditNotice";
 import BrowseNotices from "./pages/BrowseNotices";
-import { canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits, isCorporateSuperAdmin, canViewAuditLog } from "./lib/permissions";
+import { canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits, isCorporateSuperAdmin, canViewAuditLog, canViewAllNotices } from "./lib/permissions";
 
 function App() {
   return (
@@ -39,6 +40,9 @@ function App() {
           <Route path="/dashboard" element={<Dashboard/>}/>
           <Route path="/dashboard/post" element={<PostNotice/>}/>
           <Route path="/dashboard/my-notices" element={<MyNotices/>}/>
+          <Route path="/dashboard/all-notices" element={
+            <RequireCapability require={canViewAllNotices}><AllNotices/></RequireCapability>
+          }/>
           <Route path="/dashboard/review-queue" element={
             <RequireCapability require={canApprove}><ReviewQueue/></RequireCapability>
           }/>
