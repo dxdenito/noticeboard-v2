@@ -109,12 +109,11 @@ class UserAdminService:
             raise HTTPException(500, "User update failed unexpectedly")
         return reloaded
 
-    async def list_users(self, current_user: User, limit: int, offset: int) -> list[User]:
+    async def list_users(self, current_user: User, limit: int, offset: int, search: str | None = None) -> list[User]:
         if current_user.role.name == "corporate_super_admin":
-            all_users = await self.user_repo.list_users(limit=1000, offset=0)
-            return [u for u in all_users if u.role.name == "corporate_admin"][offset:offset + limit]
+            return await self.user_repo.list_by_role_name("corporate_admin", limit, offset, search)
 
         if not self._has_manage_users_right(current_user):
             raise HTTPException(403, "You don't have permission to view users")
 
-        return await self.user_repo.list_users(limit, offset)
+        return await self.user_repo.list_users(limit, offset, search)

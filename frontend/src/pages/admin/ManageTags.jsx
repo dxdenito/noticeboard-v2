@@ -3,35 +3,20 @@ import { useState, useEffect } from "react";
 import { api } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
 
-const TABS = [
-  { key: "departments", label: "Departments", fields: ["name", "code"] },
-  { key: "clubs", label: "Clubs", fields: ["name", "description"] },
-  { key: "courses", label: "Courses", fields: ["name", "code", "department_id"] },
-  { key: "categories", label: "Categories", fields: ["name"] },
-];
-
 export default function ManageTags() {
-  const [activeTab, setActiveTab] = useState("departments");
-  const [items, setItems] = useState([]);
-  const [departments, setDepartments] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({});
+  const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [reassignTarget, setReassignTarget] = useState(null); // item pending reassignment
+  const [reassignTarget, setReassignTarget] = useState(null);
   const [reassignToId, setReassignToId] = useState("");
   const { showError, showSuccess } = useToast();
-
-  const tabConfig = TABS.find((t) => t.key === activeTab);
-
-  useEffect(() => {
-    api.get("/departments/").then(setDepartments).catch(() => {});
-  }, []);
 
   async function load() {
     setLoading(true);
     try {
-      const data = await api.get(`/${activeTab}/`);
-      setItems(data);
+      const data = await api.get("/categories/");
+      setCategories(data);
     } catch (err) {
       showError(err.message);
     } finally {
@@ -39,18 +24,15 @@ export default function ManageTags() {
     }
   }
 
-  useEffect(() => {
-    setForm({});
-    load();
-  }, [activeTab]);
+  useEffect(() => { load(); }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post(`/${activeTab}/`, form);
-      showSuccess("Created");
-      setForm({});
+      await api.post("/categories/", { name });
+      showSuccess("Category created");
+      setName("");
       load();
     } catch (err) {
       showError(err.message);
@@ -61,11 +43,11 @@ export default function ManageTags() {
 
   async function handleDelete(item) {
     try {
-      await api.delete(`/${activeTab}/${item.id}`);
+      await api.delete(`/categories/${item.id}`);
       showSuccess("Deleted");
       load();
     } catch (err) {
-      if (err.message.includes("still reference")) {
+      if (err.message.includes("existing notices")) {
         setReassignTarget(item);
         setReassignToId("");
       } else {
@@ -77,9 +59,9 @@ export default function ManageTags() {
   async function confirmReassignAndDelete() {
     if (!reassignToId) return;
     try {
-      await api.patch(`/${activeTab}/${reassignTarget.id}/reassign-notices?to_id=${reassignToId}`);
-      await api.delete(`/${activeTab}/${reassignTarget.id}`);
-      showSuccess("Notices reassigned and item deleted");
+      await api.patch(`/categories/${reassignTarget.id}/reassign-notices?to_id=${reassignToId}`);
+      await api.delete(`/categories/${reassignTarget.id}`);
+      showSuccess("Notices reassigned and category deleted");
       setReassignTarget(null);
       load();
     } catch (err) {
@@ -89,49 +71,17 @@ export default function ManageTags() {
 
   return (
     <div>
-      <h1 className="text-2xl font-extrabold text-gray-900 mb-4">Manage Tags</h1>
+      <h1 className="text-2xl font-extrabold text-gray-900 mb-4">Manage Categories</h1>
 
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
-            className={`text-xs font-bold px-3 py-1.5 rounded-full ${
-              activeTab === t.key ? "bg-jkuat-green text-white" : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-lg p-4 mb-6 flex flex-wrap gap-2">
-        {tabConfig.fields.map((field) =>
-          field === "department_id" ? (
-            <select
-              key={field}
-              required
-              value={form.department_id || ""}
-              onChange={(e) => setForm((f) => ({ ...f, department_id: Number(e.target.value) }))}
-              className="flex-1 min-w-[150px] border border-gray-200 rounded-lg px-3 py-2 text-sm"
-            >
-              <option value="">Select department</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              key={field}
-              type="text"
-              placeholder={field}
-              required={field !== "description"}
-              value={form[field] || ""}
-              onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-              className="flex-1 min-w-[150px] border border-gray-200 rounded-lg px-3 py-2 text-sm"
-            />
-          )
-        )}
+      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-lg p-4 mb-6 flex gap-2">
+        <input
+          type="text"
+          placeholder="Category name"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="flex-1 min-w-[150px] border border-gray-200 rounded-lg px-3 py-2 text-sm"
+        />
         <button type="submit" disabled={submitting}
           className="bg-jkuat-green text-white font-bold px-4 py-2 rounded-lg disabled:opacity-50">
           Add
@@ -142,16 +92,16 @@ export default function ManageTags() {
         <div className="text-gray-400">Loading...</div>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
-          {items.map((item) => (
+          {categories.map((item) => (
             <div key={item.id} className="px-4 py-3 text-sm text-gray-900 flex items-center justify-between">
-              <span>{item.name} {item.code && <span className="text-gray-400">({item.code})</span>}</span>
+              <span>{item.name}</span>
               <button onClick={() => handleDelete(item)} className="text-xs text-jkuat-red">
                 Delete
               </button>
             </div>
           ))}
-          {items.length === 0 && (
-            <p className="text-center text-sm text-gray-400 py-6">Nothing here yet.</p>
+          {categories.length === 0 && (
+            <p className="text-center text-sm text-gray-400 py-6">No categories yet.</p>
           )}
         </div>
       )}
@@ -168,8 +118,8 @@ export default function ManageTags() {
               onChange={(e) => setReassignToId(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-4"
             >
-              <option value="">Select {tabConfig.label.slice(0, -1).toLowerCase()}</option>
-              {items
+              <option value="">Select category</option>
+              {categories
                 .filter((i) => i.id !== reassignTarget.id)
                 .map((i) => (
                   <option key={i.id} value={i.id}>{i.name}</option>

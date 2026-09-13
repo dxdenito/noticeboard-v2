@@ -30,6 +30,7 @@ class User(Base):
     can_pin: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     can_assign_post_scope: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     can_assign_approve_scope: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    can_delete_notice: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -38,7 +39,12 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     role: Mapped["Role"] = relationship("Role", back_populates="users")
-    notices: Mapped[list["Notice"]] = relationship(back_populates="author")
+    notices: Mapped[list["Notice"]] = relationship(
+        "Notice", foreign_keys="[Notice.author_id]", back_populates="author"
+    )
+    reviewed_notices: Mapped[list["Notice"]] = relationship(
+        "Notice", foreign_keys="[Notice.reviewed_by_id]", back_populates="reviewed_by"
+    )
     scopes: Mapped[list["AdminScope"]] = relationship(
         "AdminScope", foreign_keys="[AdminScope.admin_id]", back_populates="admin"
     )

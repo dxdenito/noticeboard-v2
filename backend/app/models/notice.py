@@ -47,6 +47,12 @@ class Notice(Base):
         nullable=False,
         default=NoticeStatus.PENDING,
     )
+    reviewed_by_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     is_pinned_site: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_pinned_feed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     expiry_date: Mapped[datetime | None] = mapped_column(
@@ -59,7 +65,10 @@ class Notice(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    author: Mapped["User"] = relationship(back_populates="notices")
+    author: Mapped["User"] = relationship("User", foreign_keys=[author_id], back_populates="notices")
+    reviewed_by: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[reviewed_by_id], back_populates="reviewed_notices"
+    )
     org_unit: Mapped["OrgUnit"] = relationship(back_populates="notices")
     category: Mapped["Category"] = relationship(back_populates="notices")
     attachments: Mapped[list["Attachment"]] = relationship(back_populates="notice")

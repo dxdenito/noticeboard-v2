@@ -16,10 +16,12 @@ import ManageUsers from "./pages/admin/ManageUsers";
 import ManageTags from "./pages/admin/ManageTags";
 import PinnedNotices from "./pages/admin/PinnedNotices";
 import OrgUnits from "./pages/admin/OrgUnits";
+import ManageCorporateAdmins from "./pages/admin/ManageCorporateAdmins";
+import AuditLogViewer from "./pages/admin/AuditLogViewer";
 import NoticeDetail from "./pages/NoticeDetail";
 import EditNotice from "./pages/admin/EditNotice";
 import BrowseNotices from "./pages/BrowseNotices";
-import { canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits } from "./lib/permissions";
+import { canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits, isCorporateSuperAdmin, canViewAuditLog } from "./lib/permissions";
 
 function App() {
   return (
@@ -43,6 +45,9 @@ function App() {
           <Route path="/dashboard/users" element={
             <RequireCapability require={canManageUsers}><ManageUsers/></RequireCapability>
           }/>
+          <Route path="/dashboard/corporate-admins" element={
+            <RequireCapability require={isCorporateSuperAdmin}><ManageCorporateAdmins/></RequireCapability>
+          }/>
           <Route path="/dashboard/tags" element={
             <RequireCapability require={canCreateCategories}><ManageTags/></RequireCapability>
           }/>
@@ -51,6 +56,9 @@ function App() {
           }/>
           <Route path="/dashboard/org-units" element={
             <RequireCapability require={canManageOrgUnits}><OrgUnits/></RequireCapability>
+          }/>
+          <Route path="/dashboard/audit-log" element={
+            <RequireCapability require={canViewAuditLog}><AuditLogViewer/></RequireCapability>
           }/>
           <Route path="/dashboard/edit-notice/:id" element={<EditNotice/>}/>
 

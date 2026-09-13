@@ -3,6 +3,7 @@ from fastapi import HTTPException
 
 from app.repositories.admin_scope_repository import AdminScopeRepository
 from app.repositories.org_unit_repository import OrgUnitRepository
+from app.repositories.user_repository import UserRepository
 from app.services.audit_log_service import AuditLogService
 from app.services.permission_service import PermissionService
 from app.models.admin_scope import AdminScope, ScopeType
@@ -14,27 +15,35 @@ class AdminScopeService:
         self.db = db
         self.scope_repo = AdminScopeRepository(db)
         self.org_unit_repo = OrgUnitRepository(db)
+        self.user_repo = UserRepository(db)
         self.audit_log_service = AuditLogService(db)
         self.permission_service = PermissionService(db)
 
-    def _check_grant_permission(self, performed_by: User, scope_type: ScopeType) -> None:
+    async def _check_grant_permission(self, performed_by: User, target_admin_id: int, scope_type: ScopeType) -> None:
+        if performed_by.id == target_admin_id and performed_by.role.name != "super_admin":
+            raise HTTPException(403, "You cannot grant or revoke your own scope")
+
         role_name = performed_by.role.name
+
+        if role_name == "corporate_super_admin":
+            target_user = await self.user_repo.get_by_id(target_admin_id)
+            if target_user is None or target_user.role.name != "corporate_admin":
+                raise HTTPException(403, "corporate_super_admin can only assign scope to corporate_admin accounts")
+            return
+
         if scope_type == ScopeType.POST:
             allowed = role_name == "super_admin" or self.permission_service.has_right(performed_by, "can_assign_post_scope")
             if not allowed:
                 raise HTTPException(403, "You don't have permission to grant post scopes")
         elif scope_type == ScopeType.APPROVE:
-            allowed = (
-                role_name in ("super_admin", "corporate_super_admin")
-                or self.permission_service.has_right(performed_by, "can_assign_approve_scope")
-            )
+            allowed = role_name == "super_admin" or self.permission_service.has_right(performed_by, "can_assign_approve_scope")
             if not allowed:
                 raise HTTPException(403, "You don't have permission to grant approve scopes")
 
     async def grant_scope(
         self, admin_id: int, org_unit_id: int, scope_type: ScopeType, performed_by: User
     ) -> AdminScope:
-        self._check_grant_permission(performed_by, scope_type)
+        await self._check_grant_permission(performed_by, admin_id, scope_type)
 
         org_unit = await self.org_unit_repo.get_by_id(org_unit_id)
         if not org_unit:
@@ -61,7 +70,7 @@ class AdminScopeService:
     async def revoke_scope(
         self, admin_id: int, org_unit_id: int, scope_type: ScopeType, performed_by: User
     ) -> None:
-        self._check_grant_permission(performed_by, scope_type)
+        await self._check_grant_permission(performed_by, admin_id, scope_type)
 
         scope = await self.scope_repo.get_active_scope(admin_id, org_unit_id, scope_type)
         if not scope:

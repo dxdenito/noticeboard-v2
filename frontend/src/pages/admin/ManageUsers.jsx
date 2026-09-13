@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
-import { Pencil, Power, PowerOff } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Pencil, Power, PowerOff, Search } from "lucide-react";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { canAssignPostScope, canAssignApproveScope } from "../../lib/permissions";
+import Pagination from "../../components/admin/Pagination";
+
+const PAGE_SIZE = 20;
 
 const AVATAR_COLORS = [
   "bg-red-500", "bg-orange-500", "bg-amber-500", "bg-lime-500",
@@ -88,6 +91,10 @@ export default function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const debounceRef = useRef(null);
   const [form, setForm] = useState({
     email: "", password: "", full_name: "", role_id: "",
     requires_approval: "false", ...EMPTY_CAPS,
@@ -102,6 +109,15 @@ export default function ManageUsers() {
 
   const canGrantPost = canAssignPostScope(currentUser);
   const canGrantApprove = canAssignApproveScope(currentUser);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(0);
+      setSearch(searchInput);
+    }, 250);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchInput]);
 
   function roleNameOf(roleId) {
     const role = roles.find((r) => String(r.id) === String(roleId));
@@ -137,8 +153,14 @@ export default function ManageUsers() {
   }
 
   async function loadUsers() {
+    setLoading(true);
     try {
-      const data = await api.get("/users/");
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(page * PAGE_SIZE),
+      });
+      if (search) params.set("search", search);
+      const data = await api.get(`/users/?${params.toString()}`);
       setUsers(data);
     } catch (err) {
       showError(err.message);
@@ -156,7 +178,8 @@ export default function ManageUsers() {
     }
   }
 
-  useEffect(() => { loadUsers(); loadRoles(); }, []);
+  useEffect(() => { loadUsers(); }, [page, search]);
+  useEffect(() => { loadRoles(); }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -224,8 +247,6 @@ export default function ManageUsers() {
     }
   }
 
-  if (loading) return <div className="text-gray-400">Loading...</div>;
-
   const formSelectedRole = roleNameOf(form.role_id);
   const editSelectedRole = editingUser ? roleNameOf(editingUser.role_id) : null;
 
@@ -271,69 +292,91 @@ export default function ManageUsers() {
         </button>
       </form>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {users.map((u) => (
-          <div key={u.id} className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-full ${avatarColor(u.id)} text-white flex items-center justify-center font-bold text-sm shrink-0`}>
-                {initials(u.full_name)}
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-sm text-gray-900 truncate">{u.full_name}</p>
-                <p className="text-xs text-gray-400 truncate">{u.email}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-bold uppercase text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                {roleLabel(u.role.name)}
-              </span>
-              {!u.is_active && (
-                <span className="text-[10px] font-bold uppercase text-jkuat-red bg-red-50 px-2 py-0.5 rounded">
-                  Deactivated
-                </span>
-              )}
-            </div>
-
-            <div className="flex gap-2 pt-2 border-t border-gray-100 flex-wrap">
-              <button
-                onClick={() => setEditingUser({
-                  id: u.id,
-                  role_id: String(u.role.id),
-                  requires_approval: String(u.requires_approval ?? false),
-                  can_approve: u.can_approve ?? false,
-                  can_post: u.can_post ?? false,
-                  can_manage_users: u.can_manage_users ?? false,
-                  can_manage_tags: u.can_manage_tags ?? false,
-                  can_manage_org_units: u.can_manage_org_units ?? false,
-                  can_pin: u.can_pin ?? false,
-                  can_assign_post_scope: u.can_assign_post_scope ?? false,
-                  can_assign_approve_scope: u.can_assign_approve_scope ?? false,
-                })}
-                aria-label="Edit user"
-                className="flex items-center gap-1 text-xs text-jkuat-green font-semibold"
-              >
-                <Pencil size={14} /> Edit
-              </button>
-              {SCOPED_ROLES.includes(u.role.name) && (canGrantPost || canGrantApprove) && (
-                <button onClick={() => openWorkflow(u)} className="text-xs text-blue-600 font-semibold">
-                  Scope
-                </button>
-              )}
-              {u.id !== currentUser.id && (
-                <button
-                  onClick={() => toggleActive(u)}
-                  aria-label={u.is_active ? "Deactivate user" : "Activate user"}
-                  className={`flex items-center gap-1 text-xs font-semibold ${u.is_active ? "text-jkuat-red" : "text-jkuat-green"}`}
-                >
-                  {u.is_active ? <PowerOff size={14} /> : <Power size={14} />}
-                  {u.is_active ? "Deactivate" : "Activate"}
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
+      <div className="relative mb-4 max-w-sm">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search by name or email..."
+          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-jkuat-green/40"
+        />
       </div>
+
+      {loading ? (
+        <div className="text-gray-400">Loading...</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {users.map((u) => (
+              <div key={u.id} className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-full ${avatarColor(u.id)} text-white flex items-center justify-center font-bold text-sm shrink-0`}>
+                    {initials(u.full_name)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm text-gray-900 truncate">{u.full_name}</p>
+                    <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold uppercase text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                    {roleLabel(u.role.name)}
+                  </span>
+                  {!u.is_active && (
+                    <span className="text-[10px] font-bold uppercase text-jkuat-red bg-red-50 px-2 py-0.5 rounded">
+                      Deactivated
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-2 border-t border-gray-100 flex-wrap">
+                  <button
+                    onClick={() => setEditingUser({
+                      id: u.id,
+                      role_id: String(u.role.id),
+                      requires_approval: String(u.requires_approval ?? false),
+                      can_approve: u.can_approve ?? false,
+                      can_post: u.can_post ?? false,
+                      can_manage_users: u.can_manage_users ?? false,
+                      can_manage_tags: u.can_manage_tags ?? false,
+                      can_manage_org_units: u.can_manage_org_units ?? false,
+                      can_pin: u.can_pin ?? false,
+                      can_assign_post_scope: u.can_assign_post_scope ?? false,
+                      can_assign_approve_scope: u.can_assign_approve_scope ?? false,
+                    })}
+                    aria-label="Edit user"
+                    className="flex items-center gap-1 text-xs text-jkuat-green font-semibold"
+                  >
+                    <Pencil size={14} /> Edit
+                  </button>
+                  {SCOPED_ROLES.includes(u.role.name) && (canGrantPost || canGrantApprove) && (
+                    <button onClick={() => openWorkflow(u)} className="text-xs text-blue-600 font-semibold">
+                      Scope
+                    </button>
+                  )}
+                  {u.id !== currentUser.id && (
+                    <button
+                      onClick={() => toggleActive(u)}
+                      aria-label={u.is_active ? "Deactivate user" : "Activate user"}
+                      className={`flex items-center gap-1 text-xs font-semibold ${u.is_active ? "text-jkuat-red" : "text-jkuat-green"}`}
+                    >
+                      {u.is_active ? <PowerOff size={14} /> : <Power size={14} />}
+                      {u.is_active ? "Deactivate" : "Activate"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {users.length === 0 && (
+            <p className="text-sm text-gray-400 mt-4">No users match "{search}".</p>
+          )}
+        </>
+      )}
+
+      <Pagination page={page} onPageChange={setPage} hasMore={users.length === PAGE_SIZE} pageSize={PAGE_SIZE} />
 
       {editingUser && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">

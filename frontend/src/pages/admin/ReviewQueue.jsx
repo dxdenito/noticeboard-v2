@@ -2,16 +2,21 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
+import Pagination from "../../components/admin/Pagination";
+
+const PAGE_SIZE = 20;
 
 export default function ReviewQueue() {
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
   const [actionLoading, setActionLoading] = useState(null);
   const { showError, showSuccess } = useToast();
 
   async function load() {
+    setLoading(true);
     try {
-      const data = await api.get("/notices/pending");
+      const data = await api.get(`/notices/pending?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`);
       setNotices(data);
     } catch (err) {
       showError(err.message);
@@ -20,7 +25,7 @@ export default function ReviewQueue() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [page]);
 
   async function handleDecision(id, action) {
     setActionLoading(id);
@@ -70,6 +75,7 @@ export default function ReviewQueue() {
           </div>
         ))}
       </div>
+      <Pagination page={page} onPageChange={setPage} hasMore={notices.length === PAGE_SIZE} pageSize={PAGE_SIZE} />
     </div>
   );
 }

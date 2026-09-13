@@ -1,7 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy import select, or_, func
+from sqlalchemy.orm import selectinload, joinedload
 from app.models.user import User
+from app.models.role import Role
 
 
 class UserRepository:
@@ -31,14 +32,39 @@ class UserRepository:
         await self.db.refresh(user)
         return user
 
-    async def list_users(self, limit: int = 50, offset: int = 0) -> list[User]:
+    async def list_users(self, limit: int = 50, offset: int = 0, search: str | None = None) -> list[User]:
+        statement = select(User).options(selectinload(User.role))
+
+        if search:
+            like_pattern = f"%{search}%"
+            statement = statement.where(
+                or_(
+                    User.full_name.ilike(like_pattern),
+                    User.email.ilike(like_pattern),
+                )
+            )
+
+        statement = statement.offset(offset).limit(limit)
+        result = await self.db.execute(statement)
+        return list(result.scalars().all())
+
+    async def list_by_role_name(self, role_name: str, limit: int = 50, offset: int = 0, search: str | None = None) -> list[User]:
         statement = (
             select(User)
-            .options(
-                selectinload(User.role),
-            )
-            .offset(offset)
-            .limit(limit)
+            .join(User.role)
+            .options(selectinload(User.role))
+            .where(Role.name == role_name)
         )
+
+        if search:
+            like_pattern = f"%{search}%"
+            statement = statement.where(
+                or_(
+                    User.full_name.ilike(like_pattern),
+                    User.email.ilike(like_pattern),
+                )
+            )
+
+        statement = statement.offset(offset).limit(limit)
         result = await self.db.execute(statement)
         return list(result.scalars().all())

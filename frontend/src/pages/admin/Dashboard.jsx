@@ -1,18 +1,25 @@
 // src/pages/dashboard/DashboardHome.jsx
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { PlusCircle, CheckSquare, FileText, Pin, Users, Tags } from "lucide-react";
+import { PlusCircle, CheckSquare, FileText, Pin, Users, Tags, Network, Building2, ScrollText } from "lucide-react";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
+import {
+  isAdmin, canApprove, canManageUsers, canCreateCategories, canPin,
+  canManageOrgUnits, isCorporateSuperAdmin, canViewAuditLog,
+} from "../../lib/permissions";
 
 const QUICK_LINKS = [
-  { to: "/dashboard/post", label: "Post Notice", icon: PlusCircle, roles: ["super_admin", "web_admin"] },
-  { to: "/dashboard/my-notices", label: "My Notices", icon: FileText, roles: ["super_admin", "web_admin"] },
-  { to: "/dashboard/review-queue", label: "Review Queue", icon: CheckSquare, roles: ["super_admin"] },
-  { to: "/dashboard/pinned", label: "Pinned Notices", icon: Pin, roles: ["super_admin"] },
-  { to: "/dashboard/users", label: "Manage Users", icon: Users, roles: ["super_admin"] },
-  { to: "/dashboard/tags", label: "Manage Tags", icon: Tags, roles: ["super_admin", "web_admin"] },
+  { to: "/dashboard/post", label: "Post Notice", icon: PlusCircle, show: isAdmin },
+  { to: "/dashboard/my-notices", label: "My Notices", icon: FileText, show: isAdmin },
+  { to: "/dashboard/review-queue", label: "Review Queue", icon: CheckSquare, show: canApprove },
+  { to: "/dashboard/pinned", label: "Pinned Notices", icon: Pin, show: canPin },
+  { to: "/dashboard/users", label: "Manage Users", icon: Users, show: canManageUsers },
+  { to: "/dashboard/corporate-admins", label: "Corporate Admins", icon: Building2, show: isCorporateSuperAdmin },
+  { to: "/dashboard/tags", label: "Manage Tags", icon: Tags, show: canCreateCategories },
+  { to: "/dashboard/org-units", label: "Org Units", icon: Network, show: canManageOrgUnits },
+  { to: "/dashboard/audit-log", label: "Audit Log", icon: ScrollText, show: canViewAuditLog },
 ];
 
 export default function Dashboard() {
@@ -24,24 +31,25 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const requests = [api.get("/notices/mine")];
-        if (user?.role.name === "super_admin") {
-          requests.push(api.get("/notices/manage"), api.get("/notices/pending"));
-        }
-        const results = await Promise.all(requests);
-        const mine = results[0];
-        const all = results[1] || [];
-        const pending = results[2] || [];
-
-        setStats({
+        const mine = await api.get("/notices/mine");
+        const next = {
           myTotal: mine.length,
           myPending: mine.filter((n) => n.status === "pending").length,
           myApproved: mine.filter((n) => n.status === "approved").length,
-          allApproved: all.length,
-          pendingReview: pending.length,
-          sitePinned: all.filter((n) => n.is_pinned_site).length,
-          feedPinned: all.filter((n) => n.is_pinned_feed).length,
-        });
+        };
+
+        if (canApprove(user)) {
+          const pending = await api.get("/notices/pending");
+          next.pendingReview = pending.length;
+        }
+
+        if (canPin(user)) {
+          const all = await api.get("/notices/manage");
+          next.sitePinned = all.filter((n) => n.is_pinned_site).length;
+          next.feedPinned = all.filter((n) => n.is_pinned_feed).length;
+        }
+
+        setStats(next);
       } catch (err) {
         showError(err.message);
       } finally {
@@ -51,7 +59,7 @@ export default function Dashboard() {
     if (user) loadStats();
   }, [user]);
 
-  const visibleLinks = QUICK_LINKS.filter((link) => user && link.roles.includes(user.role.name));
+  const visibleLinks = QUICK_LINKS.filter((link) => link.show(user));
 
   if (loading || !stats) return <div className="text-gray-400">Loading...</div>;
 
@@ -60,17 +68,18 @@ export default function Dashboard() {
       <h1 className="text-2xl font-extrabold text-gray-900 mb-1">
         Welcome back, {user.full_name}
       </h1>
-      <p className="text-sm text-gray-500 mb-6 capitalize">{user.role.name.replace("_", " ")}</p>
+      <p className="text-sm text-gray-500 mb-6 capitalize">{user.role.name.replace(/_/g, " ")}</p>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard label="My Notices" value={stats.myTotal} />
         <StatCard label="My Pending" value={stats.myPending} accent={stats.myPending > 0 ? "amber" : undefined} />
         <StatCard label="My Approved" value={stats.myApproved} accent="green" />
 
-        {user.role.name === "super_admin" && (
+        {stats.pendingReview !== undefined && (
+          <StatCard label="Awaiting Review" value={stats.pendingReview} accent={stats.pendingReview > 0 ? "red" : undefined} />
+        )}
+        {stats.sitePinned !== undefined && (
           <>
-            <StatCard label="Awaiting Review" value={stats.pendingReview} accent={stats.pendingReview > 0 ? "red" : undefined} />
-            <StatCard label="Total Published" value={stats.allApproved} />
             <StatCard label="Pinned to Site" value={stats.sitePinned} />
             <StatCard label="Pinned to Feed" value={stats.feedPinned} />
           </>
