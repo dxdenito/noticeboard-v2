@@ -3,7 +3,7 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --color-jkuat-green: #94c83d; /*16a34a*/
+  --color-jkuat-green: #94c83d; /*#16a34a;*/
   --color-jkuat-blue: #0095d9;
   --color-jkuat-red: #ff0000;
   --color-jkuat-white: #ffffff;

@@ -36,8 +36,6 @@ async def list_attachments(notice_id: int, db: AsyncSession = Depends(get_db)):
 download_router = APIRouter(prefix="/attachments", tags=["attachments"])
 
 
-
-
 @download_router.get("/{id}/download")
 async def download_attachment(
     id: int,
@@ -60,3 +58,28 @@ async def download_attachment(
         filename=attachment.file_name,
         media_type=attachment.content_type,
     )
+
+
+@download_router.get("/{id}/thumbnail")
+async def get_attachment_thumbnail(
+    id: int,
+    current_user: User | None = Depends(get_optional_current_user),
+    viewer_audience: Audience | None = Depends(get_viewer_audience),
+    db: AsyncSession = Depends(get_db),
+):
+    attachment_repo = AttachmentRepository(db)
+    attachment = await attachment_repo.get_by_id(id)
+    if not attachment:
+        raise HTTPException(404, "Attachment not found")
+
+    notice_service = NoticeService(db)
+    allowed = await notice_service.can_access_notice(attachment.notice_id, current_user, viewer_audience)
+    if not allowed:
+        raise HTTPException(404, "Attachment not found")
+
+    service = AttachmentService(db)
+    thumb_path = service.get_thumbnail_path(attachment)
+    if thumb_path is None:
+        raise HTTPException(404, "No thumbnail available for this attachment")
+
+    return FileResponse(path=thumb_path, media_type="image/png")

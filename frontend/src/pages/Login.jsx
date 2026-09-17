@@ -74,7 +74,7 @@ export default function AsymmetricLoginPage() {
             <h1 className="text-xl font-black tracking-tight text-gray-900 uppercase pt-2">
               Noticeboard Portal
             </h1>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Secure Credentials Access</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Sign in to your portal</p>
           </div>
 
 
@@ -129,7 +129,7 @@ export default function AsymmetricLoginPage() {
 
           {/* System Footer Link inside Card */}
           <p className="text-center text-xs text-gray-400 font-medium pt-2">
-            Authorized Personnel Only. Certification code <span className="font-bold text-gray-500">ISO-9001</span>.
+            Dont have an account? Contact system admin.
           </p>
 
         </form>

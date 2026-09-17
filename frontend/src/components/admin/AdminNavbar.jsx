@@ -17,7 +17,7 @@ export default function AdminNavbar(){
       {/* 1. BRAND BLOCK (Left - Red Background) */}
       <a 
         href="#home"
-        className="bg-red-600 text-white flex items-center gap-3 pl-6 pr-12 relative z-10 hover:bg-red-700 transition-colors cursor-pointer decoration-transparent"
+        className="bg-jkuat-red text-white flex items-center gap-3 pl-6 pr-12 relative z-10 hover:bg-jkuat-red hover:bg-opacity-80 transition-colors cursor-pointer decoration-transparent"
         style={{
           clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)',
           minWidth: '240px'

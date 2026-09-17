@@ -1,3 +1,4 @@
+import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, UploadFile
 
@@ -6,6 +7,9 @@ from app.repositories.notice_repository import NoticeRepository
 from app.models.attachment import Attachment
 from app.models.user import User
 from app.core.file_storage import save_upload_file
+from app.core.config import settings
+
+import fitz  # type: ignore[import-untyped]
 
 
 class AttachmentService:
@@ -35,3 +39,25 @@ class AttachmentService:
 
     async def list_for_notice(self, notice_id: int) -> list[Attachment]:
         return await self.attachment_repo.get_by_notice_id(notice_id)
+
+    def get_thumbnail_path(self, attachment: Attachment) -> str | None:
+        if attachment.content_type != "application/pdf":
+            return None
+
+        thumb_dir = os.path.join(settings.UPLOAD_DIR, "thumbnails")
+        os.makedirs(thumb_dir, exist_ok=True)
+        thumb_path = os.path.join(thumb_dir, f"{attachment.id}.png")
+
+        if os.path.exists(thumb_path):
+            return thumb_path
+
+        try:
+            doc = fitz.open(attachment.file_url)
+            page = doc.load_page(0)
+            pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))
+            pix.save(thumb_path)
+            doc.close()
+        except Exception:
+            return None
+
+        return thumb_path
