@@ -1,17 +1,29 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Lock, ArrowLeft, Download } from "lucide-react";
+import { Lock, ArrowLeft, Download, Building2 } from "lucide-react";
 import { api } from "../api/client";
 import AudienceVerify from "../components/AudienceVerify";
 import { formatFileSize } from "../lib/fileType";
 import AttachmentThumb from "../components/AttachmentThumb";
 
+const AUDIENCE_LABELS = {
+  public: "Public",
+  student: "Student",
+  staff: "Staff",
+};
+
+function formatFullDateTime(isoString) {
+  const d = new Date(isoString);
+  const datePart = d.toLocaleDateString("default", { day: "numeric", month: "short", year: "numeric" });
+  const timePart = d.toLocaleTimeString("default", { hour: "numeric", minute: "2-digit" });
+  return `${datePart} · ${timePart}`;
+}
+
 function AttachmentCard({ attachment }) {
   const downloadUrl = `${import.meta.env.VITE_API_URL}/attachments/${attachment.id}/download`;
 
   return (
-    
-     <a href={downloadUrl}
+    <a href={downloadUrl}
       className="group relative w-36 shrink-0 rounded-xl border border-gray-200 overflow-hidden hover:border-jkuat-green/40 hover:shadow-md transition-all bg-white"
     >
       <div className="relative w-full h-24 overflow-hidden">
@@ -27,6 +39,34 @@ function AttachmentCard({ attachment }) {
         <p className="text-[10px] text-gray-400">{formatFileSize(attachment.file_size)}</p>
       </div>
     </a>
+  );
+}
+
+function NoticeDetailSkeleton() {
+  return (
+    <div className="max-w-6xl mx-auto p-4 animate-pulse">
+      <div className="h-5 w-16 bg-gray-200 rounded mb-4" />
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="flex gap-2 mb-4">
+          <div className="h-5 w-16 bg-gray-200 rounded-full" />
+          <div className="h-5 w-20 bg-gray-200 rounded-full" />
+        </div>
+        <div className="h-7 w-3/4 bg-gray-200 rounded mb-2" />
+        <div className="h-7 w-1/2 bg-gray-200 rounded mb-4" />
+        <div className="h-3 w-40 bg-gray-100 rounded mb-6" />
+        <div className="space-y-2.5">
+          <div className="h-3.5 w-full bg-gray-100 rounded" />
+          <div className="h-3.5 w-full bg-gray-100 rounded" />
+          <div className="h-3.5 w-5/6 bg-gray-100 rounded" />
+          <div className="h-3.5 w-full bg-gray-100 rounded" />
+          <div className="h-3.5 w-2/3 bg-gray-100 rounded" />
+        </div>
+        <div className="flex gap-3 mt-8 pt-6 border-t border-gray-100">
+          <div className="w-36 h-32 bg-gray-100 rounded-xl" />
+          <div className="w-36 h-32 bg-gray-100 rounded-xl" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -50,6 +90,7 @@ export default function NoticeDetail() {
   }
 
   useEffect(() => {
+    setLoading(true);
     loadNotice();
   }, [id]);
 
@@ -66,20 +107,20 @@ export default function NoticeDetail() {
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-400">Loading...</div>;
+  if (loading) return <NoticeDetailSkeleton />;
   if (!notice) return <div className="p-8 text-center text-gray-400">Notice not found.</div>;
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
+    <div className="max-w-8xl mx-auto p-4">
       <button onClick={goBack} className="text-sm text-green-600 mb-4 inline-flex items-center gap-1">
         <ArrowLeft size={14} /> Back
       </button>
 
-      <div className="relative bg-white   p-6 ">
+      <div className="relative bg-white rounded-2xl p-6">
         {notice.is_locked && (
           <button
             onClick={() => setShowVerifyModal(true)}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/70 backdrop-blur-[1px] z-10 rounded-lg"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/70 backdrop-blur-[1px] z-10 rounded-2xl"
           >
             <Lock size={24} className="text-gray-700" />
             <span className="text-sm font-bold text-gray-700">
@@ -89,12 +130,25 @@ export default function NoticeDetail() {
         )}
 
         <div className={notice.is_locked ? "blur-sm pointer-events-none select-none" : ""}>
-          <span className="inline-block bg-green-50 text-green-700 border border-green-200 text-[10px] font-black tracking-wider px-2.5 py-0.5 rounded uppercase mb-3">
-            {notice.audience}
-          </span>
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <span className="inline-block bg-green-50 text-green-700 border border-green-200 text-[10px] font-black tracking-wider px-2.5 py-0.5 rounded-full uppercase">
+              {AUDIENCE_LABELS[notice.audience] || notice.audience}
+            </span>
+            {notice.category?.name && (
+              <span className="inline-block bg-gray-100 text-gray-600 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                {notice.category.name}
+              </span>
+            )}
+            {notice.org_unit?.name && (
+              <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                <Building2 size={10} />
+                {notice.org_unit.name}
+              </span>
+            )}
+          </div>
           <h1 className="text-2xl font-extrabold text-gray-900 mb-2">{notice.title}</h1>
           <p className="text-xs text-gray-400 mb-6">
-            {new Date(notice.created_at).toLocaleDateString()}
+            {formatFullDateTime(notice.created_at)}
           </p>
           <div
             className="prose prose-neutral max-w-none text-gray-800"

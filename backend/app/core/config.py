@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     debug: bool = False
     model_config = {"env_file": ".env"}
     UPLOAD_DIR: str = "uploads"
+    cross_origin_cookies: bool = False
 
 
 settings = Settings()

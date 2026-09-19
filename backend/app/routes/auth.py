@@ -11,8 +11,6 @@ from app.core.config import settings
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-
-
 @router.post("/login")
 async def login(
     response: Response,
@@ -28,8 +26,8 @@ async def login(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,  # switch to True once you're on HTTPS in production
-        samesite="lax",
+        secure=settings.cross_origin_cookies,
+        samesite="none" if settings.cross_origin_cookies else "lax",
         max_age=settings.access_token_expire_minutes * 60,
     )
 

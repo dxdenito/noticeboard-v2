@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Building2 } from "lucide-react";
 import image from "../images/image-1.jpg";
 import placeholderTwo from '../images/image-2.jpg';
 import placeholderThree from '../images/image-3.jpg';
@@ -60,7 +61,7 @@ function NoticeMedia({ notice, className }) {
   if (previewAttachment) {
     return <AttachmentThumb attachment={previewAttachment} className={className} />;
   }
-  return <img src={placeholderFor(notice.id)} alt="Notice" className={className} />;
+  return <img src={placeholderFor(notice.id)} alt="Notice" className={className} loading="lazy" decoding="async" />;
 }
 
 export default function NoticeGrid({ notices, onLockedClick }) {
@@ -69,7 +70,7 @@ export default function NoticeGrid({ notices, onLockedClick }) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
       {notices.map((notice) => {
         const pill = pillStyle(notice.id);
         const excerpt = stripHtml(notice.body);
@@ -77,7 +78,7 @@ export default function NoticeGrid({ notices, onLockedClick }) {
         return (
           <article
             key={notice.id}
-            className="group relative bg-white rounded-2xl overflow-hidden flex flex-col h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-200/70"
+            className="group relative bg-white rounded-xl shadow-lg overflow-hidden flex flex-col h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-200/70"
           >
             {notice.is_locked && (
               <button
@@ -91,7 +92,7 @@ export default function NoticeGrid({ notices, onLockedClick }) {
             )}
 
             <div className={notice.is_locked ? "flex flex-col w-full h-full blur-sm pointer-events-none select-none" : "flex flex-col w-full h-full"}>
-              <div className="relative w-full h-44 shrink-0 overflow-hidden">
+              <div className="relative w-full h-64 shrink-0 overflow-hidden">
                 <NoticeMedia notice={notice} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
               </div>
 
@@ -111,6 +112,12 @@ export default function NoticeGrid({ notices, onLockedClick }) {
                       {notice.title}
                     </h3>
                   </Link>
+                  {notice.org_unit?.name && (
+                    <p className="flex items-center gap-1 text-[11px] text-gray-400 mt-1 truncate">
+                      <Building2 size={11} className="shrink-0" />
+                      {notice.org_unit.name}
+                    </p>
+                  )}
                   {notice.body && (
                     <p className="text-xs text-gray-500 line-clamp-2 mt-1.5">
                       {excerpt}
@@ -120,7 +127,7 @@ export default function NoticeGrid({ notices, onLockedClick }) {
 
                 <Link
                   to={`/notices/${notice.id}`}
-                  className={`w-full block text-center bg-jkuat-green hover:bg-jkuat-blue text-white text-xs font-bold py-2.5 rounded-full uppercase tracking-wide transition-colors cursor-pointer ${FOCUS_RING_GREEN}`}
+                  className={`w-full block text-center bg-jkuat-green hover:bg-jkuat-blue text-white text-xs font-bold py-2.5 rounded-xl uppercase tracking-wide transition-colors cursor-pointer ${FOCUS_RING_GREEN}`}
                 >
                   Read more
                 </Link>

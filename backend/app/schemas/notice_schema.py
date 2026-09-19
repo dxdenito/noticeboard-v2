@@ -15,6 +15,15 @@ class NoticeAuthorRead(BaseModel):
         from_attributes = True
 
 
+class NoticeOrgUnitRead(BaseModel):
+    id: int
+    name: str
+    type: str
+
+    class Config:
+        from_attributes = True
+
+
 class NoticeCreate(BaseModel):
     title: str
     body: str
@@ -32,6 +41,7 @@ class NoticeRead(BaseModel):
     author: NoticeAuthorRead
     audience: Audience
     org_unit_id: int
+    org_unit: NoticeOrgUnitRead
     expiry_date: datetime | None
     created_at: datetime
     is_pinned_feed: bool = False  

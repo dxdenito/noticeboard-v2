@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Lock } from 'lucide-react';
+import { Lock, Building2 } from 'lucide-react';
 import image from '../images/image-1.jpg';
 import placeholderTwo from '../images/image-2.jpg';
 import placeholderThree from '../images/image-3.jpg';
@@ -70,7 +70,7 @@ function NoticeMedia({ notice, className }) {
   if (previewAttachment) {
     return <AttachmentThumb attachment={previewAttachment} className={className} />;
   }
-  return <img src={placeholderFor(notice.id)} alt="Notice" className={className} />;
+  return <img src={placeholderFor(notice.id)} alt="Notice" className={className} loading="lazy" decoding="async" />;
 }
 
 function LatestCardSkeleton() {
@@ -231,6 +231,12 @@ export default function AsymmetricNoticeboard() {
                                 {notice.title}
                               </h3>
                             </Link>
+                            {notice.org_unit?.name && (
+                              <p className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 truncate">
+                                <Building2 size={10} className="shrink-0" />
+                                {notice.org_unit.name}
+                              </p>
+                            )}
                           </div>
                           <div className="flex justify-end">
                             <Link
@@ -267,7 +273,7 @@ export default function AsymmetricNoticeboard() {
                 return (
                   <article
                     key={notice.id}
-                    className="group relative bg-white shadow-xl rounded-2xl overflow-hidden flex flex-col h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-200/70"
+                    className="group relative bg-white rounded-xl shadow-lg overflow-hidden flex flex-col h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-200/70"
                   >
                     {notice.is_locked && <LockOverlay />}
                     <div className={notice.is_locked ? "flex flex-col w-full h-full blur-sm pointer-events-none select-none" : "flex flex-col w-full h-full"}>
@@ -275,7 +281,7 @@ export default function AsymmetricNoticeboard() {
                         <NoticeMedia notice={notice} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       </div>
 
-                      <div className="flex-1 flex flex-col gap-5 p-4">
+                      <div className="flex-1 flex flex-col gap-3 p-4">
                         <div className="flex items-center justify-between gap-2">
                           <span className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full shrink-0 ${pill.bg} ${pill.text}`}>
                             {audienceLabel(notice)}
@@ -291,6 +297,12 @@ export default function AsymmetricNoticeboard() {
                               {notice.title}
                             </h3>
                           </Link>
+                          {notice.org_unit?.name && (
+                            <p className="flex items-center gap-1 text-[11px] text-gray-400 mt-1 truncate">
+                              <Building2 size={11} className="shrink-0" />
+                              {notice.org_unit.name}
+                            </p>
+                          )}
                           {notice.body && (
                             <p className="text-xs text-gray-500 line-clamp-2 mt-1.5">
                               {excerpt}

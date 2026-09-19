@@ -17,7 +17,7 @@ app = FastAPI(title="Noticeboard V2 API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173","https://7646-102-215-78-89.ngrok-free.app","http://10.96.176.23:5173","http://192.168.137.1:5173","http://192.168.0.103:5173","http://192.168.100.75:5173"],
+    allow_origins=["http://localhost:5173","https://871e-102-215-78-89.ngrok-free.app","http://10.96.176.23:5173","http://192.168.137.1:5173","http://192.168.0.103:5173","http://192.168.100.75:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
