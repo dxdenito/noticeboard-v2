@@ -1,5 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import datetime
+
+
+def _normalize_type(value: str) -> str:
+    return " ".join(value.split())
 
 
 class OrgUnitCreate(BaseModel):
@@ -9,6 +13,11 @@ class OrgUnitCreate(BaseModel):
     head_title: str | None = None
     head_name: str | None = None
 
+    @field_validator("type")
+    @classmethod
+    def normalize_type(cls, v: str) -> str:
+        return _normalize_type(v)
+
 
 class OrgUnitUpdate(BaseModel):
     name: str | None = None
@@ -16,6 +25,11 @@ class OrgUnitUpdate(BaseModel):
     parent_id: int | None = None
     head_title: str | None = None
     head_name: str | None = None
+
+    @field_validator("type")
+    @classmethod
+    def normalize_type(cls, v: str | None) -> str | None:
+        return _normalize_type(v) if v is not None else v
 
 
 class OrgUnitRead(BaseModel):

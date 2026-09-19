@@ -17,8 +17,15 @@ class OrgUnitRepository:
         result = await self.db.execute(statement)
         return list(result.scalars().all())
 
-    async def list_all(self) -> list[OrgUnit]:
+    async def list_all(self, type_filter: str | None = None) -> list[OrgUnit]:
         statement = select(OrgUnit)
+        if type_filter:
+            statement = statement.where(OrgUnit.type == type_filter)
+        result = await self.db.execute(statement)
+        return list(result.scalars().all())
+
+    async def list_distinct_types(self) -> list[str]:
+        statement = select(OrgUnit.type).distinct().order_by(OrgUnit.type)
         result = await self.db.execute(statement)
         return list(result.scalars().all())
 

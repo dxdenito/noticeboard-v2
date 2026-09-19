@@ -1,11 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronRight, ChevronDown, Plus, Pencil, Trash2 } from "lucide-react";
+import { api } from "../../api/client";
+
+let cachedTypes = null;
+
+async function fetchOrgUnitTypes() {
+  if (cachedTypes) return cachedTypes;
+  try {
+    const data = await api.get("/org-units/types");
+    cachedTypes = data;
+    return data;
+  } catch {
+    return [];
+  }
+}
 
 export function OrgUnitForm({ initial, onSave, onCancel }) {
   const [name, setName] = useState(initial?.name || "");
   const [type, setType] = useState(initial?.type || "");
   const [headTitle, setHeadTitle] = useState(initial?.head_title || "");
   const [headName, setHeadName] = useState(initial?.head_name || "");
+  const [typeOptions, setTypeOptions] = useState([]);
+
+  useEffect(() => {
+    fetchOrgUnitTypes().then(setTypeOptions);
+  }, []);
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -27,13 +46,21 @@ export function OrgUnitForm({ initial, onSave, onCancel }) {
           required
           className="px-2 py-1.5 text-sm border border-gray-200 rounded"
         />
-        <input
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          placeholder="Type (e.g. College, Office)"
-          required
-          className="px-2 py-1.5 text-sm border border-gray-200 rounded"
-        />
+        <div>
+          <input
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            placeholder="Type (e.g. College, Office)"
+            required
+            list="org-unit-type-options"
+            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded"
+          />
+          <datalist id="org-unit-type-options">
+            {typeOptions.map((t) => (
+              <option key={t} value={t} />
+            ))}
+          </datalist>
+        </div>
         <input
           value={headTitle}
           onChange={(e) => setHeadTitle(e.target.value)}

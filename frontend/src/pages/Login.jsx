@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logo from "../images/jkuatlogo.png"
 import { useToast } from '../context/ToastContext';
@@ -31,30 +31,7 @@ export default function AsymmetricLoginPage() {
   return (
     <div className="w-full min-h-screen bg-white relative flex items-center justify-center overflow-hidden font-sans select-none">
 
-      <div 
-        className="absolute inset-0 z-0 bg-white pointer-events-none"
-        style={{
-          background: `linear-gradient(135deg, 
-            rgba(255,255,255,0) 0%, 
-            rgba(255,255,255,0) 40%, 
-            #dc2626 40%, 
-            #dc2626 65%, 
-            #ffffff 65%, 
-            #ffffff 100%)`
-        }}
-      />
-
-      <div 
-        className="absolute inset-0 z-0 pointer-events-none"
-        style={{
-          background: `linear-gradient(135deg, 
-            rgba(255,255,255,0) 0%, 
-            rgba(255,255,255,0) 68%, 
-            #16a34a 68%, 
-            #16a34a 85%, 
-            transparent 85%)`
-        }}
-      />
+      
 
 
       <div 
@@ -91,7 +68,7 @@ export default function AsymmetricLoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter workspace handle"
                 required
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-red-600 transition-colors bg-gray-50/50"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-jkuat-blue transition-colors bg-gray-50/50"
               />
             </div>
 
@@ -101,9 +78,7 @@ export default function AsymmetricLoginPage() {
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
                   Password
                 </label>
-                <a href="#forgot" className="text-xs font-bold text-green-600 hover:underline">
-                  Forgot?
-                </a>
+                
               </div>
               <input 
                 type="password" 
@@ -111,7 +86,7 @@ export default function AsymmetricLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
                 required
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-600 transition-colors bg-gray-50/50"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-jkuat-green transition-colors bg-gray-50/50"
               />
             </div>
 
@@ -121,7 +96,7 @@ export default function AsymmetricLoginPage() {
           <div className="pt-2">
             <button 
               type="submit"
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-extrabold tracking-wide py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-[0.99] cursor-pointer text-center text-sm"
+              className="w-full bg-jkuat-green hover:bg-jkuat-green-dark text-white font-extrabold tracking-wide py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-[0.99] cursor-pointer text-center text-sm"
             >
               LOGIN TO PANEL →
             </button>
@@ -131,6 +106,10 @@ export default function AsymmetricLoginPage() {
           <p className="text-center text-xs text-gray-400 font-medium pt-2">
             Dont have an account? Contact system admin.
           </p>
+
+          <Link to="/" className="text-center text-xs text-jkuat-blue font-medium pt-2 hover:underline">
+            ← Back to Noticeboard
+          </Link>
 
         </form>
       </main>

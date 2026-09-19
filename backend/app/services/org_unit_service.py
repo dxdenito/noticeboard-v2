@@ -96,8 +96,11 @@ class OrgUnitService:
             raise HTTPException(404, "Org unit not found")
         return org_unit
 
-    async def list_all(self) -> list[OrgUnit]:
-        return await self.org_unit_repo.list_all()
+    async def list_all(self, type_filter: str | None = None) -> list[OrgUnit]:
+        return await self.org_unit_repo.list_all(type_filter)
+
+    async def list_types(self) -> list[str]:
+        return await self.org_unit_repo.list_distinct_types()
 
     async def get_tree(self) -> list[OrgUnitTreeNode]:
         all_units = await self.org_unit_repo.list_all()

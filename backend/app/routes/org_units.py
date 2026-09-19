@@ -20,15 +20,21 @@ async def create_org_unit(
 
 
 @router.get("/", response_model=list[OrgUnitRead])
-async def list_org_units(db: AsyncSession = Depends(get_db)):
+async def list_org_units(type: str | None = None, db: AsyncSession = Depends(get_db)):
     service = OrgUnitService(db)
-    return await service.list_all()
+    return await service.list_all(type)
 
 
 @router.get("/tree", response_model=list[OrgUnitTreeNode])
 async def get_org_unit_tree(db: AsyncSession = Depends(get_db)):
     service = OrgUnitService(db)
     return await service.get_tree()
+
+
+@router.get("/types", response_model=list[str])
+async def get_org_unit_types(db: AsyncSession = Depends(get_db)):
+    service = OrgUnitService(db)
+    return await service.list_types()
 
 
 @router.get("/{org_unit_id}", response_model=OrgUnitRead)

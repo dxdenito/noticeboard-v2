@@ -5,20 +5,25 @@ import { api } from "../api/client";
 import AudienceVerify from "../components/AudienceVerify";
 import NoticeGrid from "../components/Noticegrid";
 
-// Config per "kind" — tag-based kinds have a real API endpoint listing
-// options for the filter dropdown; audience-based kinds don't need one,
-// since student/staff are just fixed values, not a fetchable list.
-const CONFIG = {
-  departments: { label: "Departments", getValue: (n) => n.department_id, fetchUrl: "/departments/" },
-  clubs: { label: "Clubs", getValue: (n) => n.club_id, fetchUrl: "/clubs/" },
-  courses: { label: "Courses", getValue: (n) => n.course_id, fetchUrl: "/courses/" },
-  categories: { label: "Categories", getValue: (n) => n.category?.id, fetchUrl: "/categories/" },
+const AUDIENCE_KINDS = {
   staff: { label: "Staff Notices", audience: "staff" },
   students: { label: "Student Notices", audience: "student" },
 };
+
+function groupByType(orgUnits) {
+  const groups = {};
+  for (const unit of orgUnits) {
+    if (!groups[unit.type]) groups[unit.type] = [];
+    groups[unit.type].push(unit);
+  }
+  return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+}
+
 export default function BrowseNotices() {
   const { kind } = useParams();
-  const config = CONFIG[kind];
+  const isSections = kind === "sections";
+  const isCategories = kind === "categories";
+  const audienceConfig = AUDIENCE_KINDS[kind];
 
   const [allNotices, setAllNotices] = useState([]);
   const [options, setOptions] = useState([]);
@@ -31,10 +36,11 @@ export default function BrowseNotices() {
     setLoading(true);
     try {
       const requests = [api.get("/notices/")];
-      if (config.fetchUrl) requests.push(api.get(config.fetchUrl));
-      const [notices, tagOptions] = await Promise.all(requests);
-      setAllNotices(notices);
-      if (tagOptions) setOptions(tagOptions);
+      if (isCategories) requests.push(api.get("/categories/"));
+      if (isSections) requests.push(api.get("/org-units/"));
+      const results = await Promise.all(requests);
+      setAllNotices(results[0]);
+      setOptions(results[1] || []);
     } catch {
       // quiet — public page, degrade gracefully
     } finally {
@@ -44,42 +50,65 @@ export default function BrowseNotices() {
 
   useEffect(() => {
     setSelectedId("");
+    setOptions([]);
     load();
   }, [kind]);
 
   function handleVerified(newAudience) {
     setAudience(newAudience);
-    load(); // refetch — locked notices unlock once verified
+    load();
   }
 
-  if (!config) {
-    return <div className="p-8 text-center text-gray-400">Not found.</div>;
-  }
+  const label = audienceConfig?.label || (isCategories ? "Categories" : isSections ? "Sections" : "Not found");
 
-  // Tag-based: filter by the entity type this page is scoped to (all of
-  // them, or narrowed to one specific department/club/course/category).
-  // Audience-based: filter to exactly that fixed audience value.
-  const filtered = config.audience
-  ? allNotices.filter((n) => n.audience === config.audience)
-  : allNotices.filter((n) => {
-      const value = config.getValue(n);
+  let filtered;
+  if (audienceConfig) {
+    filtered = allNotices.filter((n) => n.audience === audienceConfig.audience);
+  } else if (isCategories) {
+    filtered = allNotices.filter((n) => {
+      const value = n.category?.id;
       if (!value) return false;
       return selectedId ? value === Number(selectedId) : true;
     });
+  } else if (isSections) {
+    filtered = allNotices.filter((n) => {
+      if (!n.org_unit_id) return false;
+      return selectedId ? n.org_unit_id === Number(selectedId) : true;
+    });
+  } else {
+    filtered = [];
+  }
 
   if (loading) return <div className="p-8 text-center text-gray-400">Loading...</div>;
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-8">
-      <h1 className="text-2xl font-extrabold text-gray-900 mb-4">{config.label}</h1>
+      <h1 className="text-2xl font-extrabold text-gray-900 mb-4">{label}</h1>
 
-      {config.fetchUrl && (
+      {isSections && options.length > 0 && (
         <select
           value={selectedId}
           onChange={(e) => setSelectedId(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm mb-6"
         >
-          <option value="">All {config.label}</option>
+          <option value="">All Sections</option>
+          {groupByType(options).map(([type, units]) => (
+            <optgroup key={type} label={type}>
+              {units.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      )}
+
+      {isCategories && options.length > 0 && (
+        <select
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm mb-6"
+        >
+          <option value="">All Categories</option>
           {options.map((o) => (
             <option key={o.id} value={o.id}>{o.name}</option>
           ))}

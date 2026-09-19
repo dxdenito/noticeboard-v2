@@ -4,6 +4,13 @@ import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-do
 import { Search, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+const MENU_ITEMS = [
+  { label: 'Sections', to: '/browse/sections' },
+  { label: 'Staff', to: '/browse/staff' },
+  { label: 'Students', to: '/browse/students' },
+  { label: 'Categories', to: '/browse/categories' },
+];
+
 export default function Navbar(){
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
@@ -16,29 +23,20 @@ export default function Navbar(){
   const debounceRef = useRef(null);
   const mobileSearchInputRef = useRef(null);
 
-  const menuItems = [
-    { label: 'Departments', to: '/browse/departments' },
-    { label: 'Clubs', to: '/browse/clubs' },
-    { label: 'Courses', to: '/browse/courses' },
-    { label: 'Categories', to: '/browse/categories' },
-    { label: 'Staff', to: '/browse/staff' },
-    { label: 'Students', to: '/browse/students' },
-  ];
-
-  // useEffect(() => {
-  //   if (debounceRef.current) clearTimeout(debounceRef.current);
-  //   debounceRef.current = setTimeout(() => {
-  //     const params = new URLSearchParams(location.pathname === "/" ? location.search : "");
-  //     if (searchValue) {
-  //       params.set("q", searchValue);
-  //     } else {
-  //       params.delete("q");
-  //     }
-  //     const query = params.toString();
-  //     navigate(`/${query ? `?${query}` : ""}`, { replace: true });
-  //   }, 250);
-  //   return () => clearTimeout(debounceRef.current);
-  // }, [searchValue]);
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const params = new URLSearchParams(location.pathname === "/" ? location.search : "");
+      if (searchValue) {
+        params.set("q", searchValue);
+      } else {
+        params.delete("q");
+      }
+      const query = params.toString();
+      navigate(`/${query ? `?${query}` : ""}`, { replace: true });
+    }, 250);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchValue]);
 
   useEffect(() => {
     if (mobileSearchOpen) mobileSearchInputRef.current?.focus();
@@ -53,7 +51,7 @@ export default function Navbar(){
           style={{ clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)', minWidth: '160px' }}
         >
           <img src={logo} className="h-9 md:h-10" alt="Jkuat Logo" />
-          <div className=" flex flex-col leading-tight">
+          <div className="hidden sm:flex flex-col leading-tight">
             <span className="font-extrabold text-lg tracking-wide uppercase">JKUAT</span>
             <span className="text-xs font-medium text-green-100 -mt-1">Noticeboard</span>
           </div>
@@ -64,7 +62,7 @@ export default function Navbar(){
           style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}
         >
           <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-          {menuItems.map((item) => (
+          {MENU_ITEMS.map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -124,7 +122,7 @@ export default function Navbar(){
 
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-gray-100 px-2 py-2">
-          {menuItems.map((item) => (
+          {MENU_ITEMS.map((item) => (
             <Link
               key={item.to}
               to={item.to}

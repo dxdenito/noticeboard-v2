@@ -259,7 +259,7 @@ export default function AsymmetricNoticeboard() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
               {rest.map((notice) => {
                 const pill = pillStyle(notice.id);
                 const excerpt = stripHtml(notice.body);
@@ -267,7 +267,7 @@ export default function AsymmetricNoticeboard() {
                 return (
                   <article
                     key={notice.id}
-                    className="group relative bg-[#F2F7E6] shadow-xl rounded-2xl overflow-hidden flex flex-col h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-200/70"
+                    className="group relative bg-white shadow-xl rounded-2xl overflow-hidden flex flex-col h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-200/70"
                   >
                     {notice.is_locked && <LockOverlay />}
                     <div className={notice.is_locked ? "flex flex-col w-full h-full blur-sm pointer-events-none select-none" : "flex flex-col w-full h-full"}>
@@ -275,7 +275,7 @@ export default function AsymmetricNoticeboard() {
                         <NoticeMedia notice={notice} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       </div>
 
-                      <div className="flex-1 flex flex-col gap-3 p-4">
+                      <div className="flex-1 flex flex-col gap-5 p-4">
                         <div className="flex items-center justify-between gap-2">
                           <span className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full shrink-0 ${pill.bg} ${pill.text}`}>
                             {audienceLabel(notice)}
@@ -300,7 +300,7 @@ export default function AsymmetricNoticeboard() {
 
                         <Link
                           to={`/notices/${notice.id}`}
-                          className={`w-full block text-center bg-jkuat-green hover:bg-jkuat-blue text-white text-xs font-bold py-2.5 rounded-full uppercase tracking-wide transition-colors cursor-pointer ${FOCUS_RING_GREEN}`}
+                          className={`w-full block text-center bg-jkuat-green hover:bg-jkuat-blue text-white text-xs font-bold py-2.5 rounded-xl uppercase tracking-wide transition-colors cursor-pointer ${FOCUS_RING_GREEN}`}
                         >
                           Read more
                         </Link>

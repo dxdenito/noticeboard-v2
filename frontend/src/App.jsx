@@ -29,9 +29,9 @@ function App() {
     <AuthProvider>
      <ToastProvider>
       <Routes>
+        <Route path="/login" element={<AsymmetricLoginPage />} />
         <Route element={<MainLayout/>}>
-          <Route path="/" element={<AsymmetricNoticeboard />} />
-          <Route path="/login" element={<AsymmetricLoginPage />} />
+          <Route path="/" element={<AsymmetricNoticeboard />} />          
           <Route path="/notices/:id" element={<NoticeDetail />} />
           <Route path="/browse/:kind" element={<BrowseNotices />} />
         </Route>
