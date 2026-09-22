@@ -7,6 +7,7 @@ from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
 from app.models.notice import NoticeStatus, Notice, Audience
 from app.schemas.notice_schema import NoticeCreate, NoticeRead, NoticeUpdate
+from app.services.notification_service import NotificationService
 
 from app.models.user import User
 
@@ -20,6 +21,7 @@ class NoticeService:
         self.notice_repo = NoticeRepository(db)
         self.permission_service = PermissionService(db)
         self.audit_log_service = AuditLogService(db)
+        self.notification_service = NotificationService(db)
 
     async def _check_post_scope(self, data: NoticeCreate | NoticeUpdate, current_user: User) -> None:
         org_unit_id = getattr(data, "org_unit_id", None)
@@ -86,6 +88,8 @@ class NoticeService:
             current_user, "notice.create", "notice", reloaded.id, reloaded.title,
             details=f"status: {status.value}",
         )
+        if status == NoticeStatus.PENDING:
+            await self.notification_service.notify_pending_review(reloaded)
         return reloaded
 
     async def list_pending(self, current_user: User, limit: int, offset: int) -> list[Notice]:
@@ -144,6 +148,7 @@ class NoticeService:
         await self.audit_log_service.log(
             current_user, "notice.approve", "notice", reloaded.id, reloaded.title,
         )
+        await self.notification_service.notify_approved(reloaded)
         return reloaded
 
     async def reject(self, notice_id: int, rejection_notes: str, current_user: User) -> Notice:
@@ -167,6 +172,7 @@ class NoticeService:
         await self.audit_log_service.log(
             current_user, "notice.reject", "notice", reloaded.id, reloaded.title,
         )
+        await self.notification_service.notify_rejected(reloaded)
         return reloaded
 
     async def pin_site(self, notice_id: int, current_user: User) -> Notice:
