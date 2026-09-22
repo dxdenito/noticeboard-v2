@@ -22,8 +22,9 @@ import AllNotices from "./pages/admin/AllNotices";
 import NoticeDetail from "./pages/NoticeDetail";
 import EditNotice from "./pages/admin/EditNotice";
 import BrowseNotices from "./pages/BrowseNotices";
-import { canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits, isCorporateSuperAdmin, canViewAuditLog, canViewAllNotices } from "./lib/permissions";
-import RejectedNotices from "./pages/admin/RejectedNotices";
+import { canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits, isCorporateSuperAdmin, canViewAuditLog, canViewAllNotices, canManageInstitutionalDomains } from "./lib/permissions";
+import ManageInstitutionalDomains from "./pages/admin/ManageInstitutionalDomains";
+import AdminNoticeDetail from "./pages/admin/AdminNoticeDetail";
 
 function App() {
   return (
@@ -41,15 +42,14 @@ function App() {
           <Route path="/dashboard" element={<Dashboard/>}/>
           <Route path="/dashboard/post" element={<PostNotice/>}/>
           <Route path="/dashboard/my-notices" element={<MyNotices/>}/>
+          <Route path="/dashboard/notices/:id" element={<AdminNoticeDetail/>}/>
           <Route path="/dashboard/all-notices" element={
             <RequireCapability require={canViewAllNotices}><AllNotices/></RequireCapability>
           }/>
           <Route path="/dashboard/review-queue" element={
             <RequireCapability require={canApprove}><ReviewQueue/></RequireCapability>
           }/>
-          <Route path="/dashboard/rejected-notices" element={
-            <RequireCapability require={canApprove}><RejectedNotices/></RequireCapability>
-          }/>
+
           <Route path="/dashboard/users" element={
             <RequireCapability require={canManageUsers}><ManageUsers/></RequireCapability>
           }/>
@@ -65,6 +65,10 @@ function App() {
           <Route path="/dashboard/org-units" element={
             <RequireCapability require={canManageOrgUnits}><OrgUnits/></RequireCapability>
           }/>
+         <Route path="/dashboard/institutional-domains" element={
+            <RequireCapability require={canManageInstitutionalDomains}><ManageInstitutionalDomains/></RequireCapability>
+          }/>
+          
           <Route path="/dashboard/audit-log" element={
             <RequireCapability require={canViewAuditLog}><AuditLogViewer/></RequireCapability>
           }/>

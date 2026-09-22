@@ -68,13 +68,7 @@ class NoticeRepository:
     async def list_pending(self, limit: int = 50, offset: int = 0) -> list[Notice]:
         statement = (
             select(Notice)
-            .where(
-                Notice.status == NoticeStatus.PENDING,
-                or_(
-                    Notice.expiry_date.is_(None),
-                    Notice.expiry_date > datetime.now(timezone.utc),
-                ),
-            )
+            .where(Notice.status == NoticeStatus.PENDING)
             .options(
                 selectinload(Notice.attachments),
                 selectinload(Notice.category),
@@ -92,13 +86,7 @@ class NoticeRepository:
     async def list_rejected(self, limit: int = 50, offset: int = 0) -> list[Notice]:
         statement = (
             select(Notice)
-            .where(
-                Notice.status == NoticeStatus.REJECTED,
-                or_(
-                    Notice.expiry_date.is_(None),
-                    Notice.expiry_date > datetime.now(timezone.utc),
-                ),
-            )
+            .where(Notice.status == NoticeStatus.REJECTED)
             .options(
                 selectinload(Notice.attachments),
                 selectinload(Notice.category),
@@ -107,6 +95,24 @@ class NoticeRepository:
                 selectinload(Notice.org_unit),
             )
             .order_by(Notice.created_at.asc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.db.execute(statement)
+        return list(result.scalars().all())
+
+    async def list_all_approved(self, limit: int = 50, offset: int = 0) -> list[Notice]:
+        statement = (
+            select(Notice)
+            .where(Notice.status == NoticeStatus.APPROVED)
+            .options(
+                selectinload(Notice.attachments),
+                selectinload(Notice.category),
+                selectinload(Notice.author),
+                selectinload(Notice.reviewed_by),
+                selectinload(Notice.org_unit),
+            )
+            .order_by(Notice.created_at.desc())
             .limit(limit)
             .offset(offset)
         )
@@ -124,29 +130,7 @@ class NoticeRepository:
         result = await self.db.execute(statement)
         return list(result.scalars().all())
 
-    async def list_all_approved(self, limit: int = 50, offset: int = 0) -> list[Notice]:
-        statement = (
-            select(Notice)
-            .where(
-                Notice.status == NoticeStatus.APPROVED,
-                or_(
-                    Notice.expiry_date.is_(None),
-                    Notice.expiry_date > datetime.now(timezone.utc),
-                ),
-            )
-            .options(
-                selectinload(Notice.attachments),
-                selectinload(Notice.category),
-                selectinload(Notice.author),
-                selectinload(Notice.reviewed_by),
-                selectinload(Notice.org_unit),
-            )
-            .order_by(Notice.created_at.desc())
-            .limit(limit)
-            .offset(offset)
-        )
-        result = await self.db.execute(statement)
-        return list(result.scalars().all())
+    
 
     async def list_all(
         self, limit: int = 50, offset: int = 0, search: str | None = None, status: NoticeStatus | None = None

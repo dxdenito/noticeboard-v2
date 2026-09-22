@@ -25,22 +25,22 @@ export default function Navbar(){
   const isFirstRender = useRef(true);
 
   useEffect(() => {
-    // if (isFirstRender.current) {
-    //   isFirstRender.current = false;
-    //   return;
-    // }
-    // if (debounceRef.current) clearTimeout(debounceRef.current);
-    // debounceRef.current = setTimeout(() => {
-    //   const params = new URLSearchParams(location.pathname === "/" ? location.search : "");
-    //   if (searchValue) {
-    //     params.set("q", searchValue);
-    //   } else {
-    //     params.delete("q");
-    //   }
-    //   const query = params.toString();
-    //   navigate(`/${query ? `?${query}` : ""}`, { replace: true });
-    // }, 250);
-    // return () => clearTimeout(debounceRef.current);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const params = new URLSearchParams(location.pathname === "/" ? location.search : "");
+      if (searchValue) {
+        params.set("q", searchValue);
+      } else {
+        params.delete("q");
+      }
+      const query = params.toString();
+      navigate(`/${query ? `?${query}` : ""}`, { replace: true });
+    }, 250);
+    return () => clearTimeout(debounceRef.current);
   }, [searchValue]);
 
   useEffect(() => {

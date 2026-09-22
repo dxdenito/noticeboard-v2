@@ -19,18 +19,40 @@ function flattenTree(nodes, path = []) {
   return result;
 }
 
-function Pill({ children, selectProps, options, renderOption }) {
+function isBodyEmpty(html) {
+  if (!html) return true;
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  return !div.textContent.trim();
+}
+
+function validateForm(form) {
+  const errors = {};
+  if (!form.title.trim()) errors.title = "Title is required";
+  if (isBodyEmpty(form.body)) errors.body = "Notice body can't be empty";
+  if (!form.category_id) errors.category_id = "Select a category";
+  if (!form.org_unit_id) errors.org_unit_id = "Select an org unit";
+  return errors;
+}
+
+function Pill({ children, selectProps, options, renderOption, invalid }) {
   return (
     <div className="relative inline-flex items-center">
-      <div className="flex items-center gap-1 pl-3 pr-2 py-1.5 rounded-full border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-300 transition-colors">
-        <span className="text-gray-400">{children}</span>
+      <div
+        className={`flex items-center gap-1 pl-3 pr-2 py-1.5 rounded-full border text-sm font-medium transition-colors ${
+          invalid
+            ? "border-red-300 bg-red-50 text-red-600"
+            : "border-gray-200 text-gray-700 hover:border-gray-300"
+        }`}
+      >
+        <span className={invalid ? "text-red-400" : "text-gray-400"}>{children}</span>
         <select
           {...selectProps}
           className="appearance-none bg-transparent focus:outline-none cursor-pointer pr-1 max-w-[180px] truncate"
         >
           {options.map(renderOption)}
         </select>
-        <ChevronDown size={13} className="text-gray-400 pointer-events-none" />
+        <ChevronDown size={13} className={`pointer-events-none ${invalid ? "text-red-400" : "text-gray-400"}`} />
       </div>
     </div>
   );
@@ -53,9 +75,10 @@ export default function PostNotice() {
     category_id: "",
     audience: "public",
     org_unit_id: "",
-    expiry_date: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -86,6 +109,14 @@ export default function PostNotice() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const validationErrors = validateForm(form);
+    setErrors(validationErrors);
+    setSubmitAttempted(true);
+    if (Object.keys(validationErrors).length > 0) {
+      showError("Please fix the highlighted fields before publishing");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
@@ -94,7 +125,6 @@ export default function PostNotice() {
         category_id: Number(form.category_id),
         audience: form.audience,
         org_unit_id: Number(form.org_unit_id),
-        expiry_date: form.expiry_date ? new Date(form.expiry_date).toISOString() : null,
       };
       const notice = await api.post("/notices/", payload);
       for (const file of files) {
@@ -118,33 +148,39 @@ export default function PostNotice() {
   const willRequireApproval =
     user?.role.name === "web_admin" && user?.requires_approval;
 
-  const canSubmit = form.title && form.body && form.category_id && form.org_unit_id;
+  const showTitleError = submitAttempted && errors.title;
+  const showBodyError = submitAttempted && errors.body;
 
   return (
     <div className="max-w-6xl mx-auto pb-24">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <textarea
-          rows={1}
-          placeholder="Notice title"
-          required
-          value={form.title}
-          onChange={(e) => {
-            updateField("title", e.target.value);
-            e.target.style.height = "auto";
-            e.target.style.height = e.target.scrollHeight + "px";
-          }}
-          className="w-full font-serif text-3xl md:text-4xl font-bold text-gray-900 placeholder-gray-300 border-none focus:outline-none resize-none overflow-hidden bg-transparent"
-        />
+        <div>
+          <textarea
+            rows={1}
+            placeholder="Notice title"
+            autoFocus
+            value={form.title}
+            onChange={(e) => {
+              updateField("title", e.target.value);
+              e.target.style.height = "auto";
+              e.target.style.height = e.target.scrollHeight + "px";
+            }}
+            className={`w-full font-serif text-3xl md:text-4xl font-bold text-gray-900 placeholder-gray-300 bg-transparent resize-none overflow-hidden focus:outline-none transition-colors pb-1 border-0 border-b-2 ${
+              showTitleError ? "border-red-400" : "border-transparent focus:border-jkuat-green/40"
+            }`}
+          />
+          {showTitleError && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <Pill
+            invalid={submitAttempted && !!errors.category_id}
             options={[
               { value: "", label: "Category" },
               ...categories.map((c) => ({ value: c.id, label: c.name })),
             ]}
             renderOption={(o) => <option key={o.value} value={o.value}>{o.label}</option>}
             selectProps={{
-              required: true,
               value: form.category_id,
               onChange: (e) => updateField("category_id", e.target.value),
             }}
@@ -168,13 +204,13 @@ export default function PostNotice() {
           </Pill>
 
           <Pill
+            invalid={submitAttempted && !!errors.org_unit_id}
             options={[
               { value: "", label: "Select org unit" },
               ...allowedOrgUnits.map((u) => ({ value: u.id, label: u.label })),
             ]}
             renderOption={(o) => <option key={o.value} value={o.value}>{o.label}</option>}
             selectProps={{
-              required: true,
               value: form.org_unit_id,
               onChange: (e) => updateField("org_unit_id", e.target.value),
             }}
@@ -183,39 +219,36 @@ export default function PostNotice() {
           </Pill>
         </div>
 
+        {submitAttempted && (errors.category_id || errors.org_unit_id) && (
+          <p className="text-xs text-red-500 -mt-3">
+            {[errors.category_id, errors.org_unit_id].filter(Boolean).join(" · ")}
+          </p>
+        )}
+
         {isScopeRestricted && allowedOrgUnits.length === 0 && (
           <p className="text-xs text-red-600">
             You have no org units assigned to post for. Contact an admin to be granted posting scope.
           </p>
         )}
 
-        <RichTextEditor
-          content={form.body}
-          onChange={(html) => updateField("body", html)}
-          placeholder="Write your notice..."
-        />
+        <div>
+          <RichTextEditor
+            content={form.body}
+            onChange={(html) => updateField("body", html)}
+            placeholder="Write your notice..."
+          />
+          {showBodyError && <p className="text-xs text-red-500 mt-1">{errors.body}</p>}
+        </div>
 
         <div>
-          <button
-            type="button"
-            onClick={() => setShowMore((v) => !v)}
-            className="text-xs font-semibold text-gray-400 hover:text-gray-600"
+          <p
+            className="text-xs font-semibold text-gray-400"
           >
-            {showMore ? "Hide options" : "More options"}
-          </button>
+            More options
+          </p>
 
-          {showMore && (
+          
             <div className="mt-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-gray-500 w-24 shrink-0">Expires</label>
-                <input
-                  type="datetime-local"
-                  value={form.expiry_date}
-                  onChange={(e) => updateField("expiry_date", e.target.value)}
-                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm"
-                />
-              </div>
-
               <div className="flex items-start gap-2">
                 <label className="text-xs font-medium text-gray-500 w-24 shrink-0 pt-1.5">Attachments</label>
                 <div className="flex-1">
@@ -248,7 +281,7 @@ export default function PostNotice() {
                 </div>
               </div>
             </div>
-          )}
+        
         </div>
       </form>
 
@@ -258,7 +291,7 @@ export default function PostNotice() {
         </p>
         <button
           onClick={handleSubmit}
-          disabled={submitting || !canSubmit}
+          disabled={submitting}
           className="bg-jkuat-green hover:bg-jkuat-green/90 text-white text-sm font-bold px-6 py-2.5 rounded-full disabled:opacity-40 transition-opacity"
         >
           {submitting ? "Posting..." : "Publish"}

@@ -79,3 +79,7 @@ export function canDeleteAnyNotice(user) {
   if (user.role.name === "super_admin") return true;
   return hasRight(user, "can_delete_notice");
 }
+
+export function canManageInstitutionalDomains(user) {
+  return user?.role?.name === "super_admin";
+}

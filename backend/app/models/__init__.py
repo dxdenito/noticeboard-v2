@@ -7,6 +7,7 @@ from app.models.scope_audit_log import ScopeAuditLog
 from app.models.admin_scope import AdminScope
 from app.models.org_unit import OrgUnit
 from app.models.audit_log import AuditLog
+from app.models.institutional_domain import InstitutionalDomain
 
 __all__ = [
     "Role",
@@ -18,4 +19,5 @@ __all__ = [
     "AdminScope",
     "OrgUnit",
     "AuditLog",
+    "InstitutionalDomain"
 ]

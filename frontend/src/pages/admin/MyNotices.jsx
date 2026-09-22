@@ -117,7 +117,7 @@ export default function MyNotices() {
           {notices.map((n) => (
             <Link
               key={n.id}
-              to={`/notices/${n.id}`}
+              to={`/dashboard/notices/${n.id}`}
               className="group relative flex flex-col bg-white border border-gray-100 rounded-lg overflow-hidden hover:border-gray-200 transition-colors"
             >
               <div className={`h-1 ${STATUS_RAIL[n.status]}`} />

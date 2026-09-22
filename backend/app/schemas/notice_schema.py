@@ -66,3 +66,6 @@ class NoticeUpdate(BaseModel):
 
 class NoticeReject(BaseModel):
     rejection_notes: str = Field(..., min_length=1)
+
+class NoticePinFeedRequest(BaseModel):
+    expiry_date: datetime | None = None

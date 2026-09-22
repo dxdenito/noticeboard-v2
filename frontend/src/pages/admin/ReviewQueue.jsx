@@ -91,7 +91,7 @@ export default function ReviewQueue() {
                   <span>{n.audience}</span>
                 </div>
 
-                <Link to={`/notices/${n.id}`} className="font-serif text-lg font-bold text-gray-900 leading-snug line-clamp-2 hover:underline">
+                <Link to={`/dashboard/notices/${n.id}`} className="font-serif text-lg font-bold text-gray-900 leading-snug line-clamp-2 hover:underline">
                   {n.title}
                 </Link>
 

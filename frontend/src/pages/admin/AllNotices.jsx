@@ -143,7 +143,7 @@ export default function AllNotices() {
                     <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${STATUS_STYLES[n.status]}`}>
                       {n.status}
                     </span>
-                    <Link to={`/notices/${n.id}`} className="font-semibold text-sm text-gray-900 hover:underline truncate">
+                    <Link to={`/dashboard/notices/${n.id}`} className="font-semibold text-sm text-gray-900 hover:underline truncate">
                       {n.title}
                     </Link>
                   </div>

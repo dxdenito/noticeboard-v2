@@ -210,7 +210,7 @@ class NoticeService:
         )
         return reloaded
 
-    async def pin_feed(self, notice_id: int, current_user: User) -> Notice:
+    async def pin_feed(self, notice_id: int, expiry_date: datetime | None, current_user: User) -> Notice:
         self._check_pin_permission(current_user)
 
         notice = await self.notice_repo.get_by_id(notice_id)
@@ -218,6 +218,7 @@ class NoticeService:
             raise HTTPException(404, "Notice not found")
 
         notice.is_pinned_feed = True
+        notice.expiry_date = expiry_date
         await self.notice_repo.update(notice)
 
         reloaded = await self.notice_repo.get_by_id(notice_id)
@@ -237,6 +238,7 @@ class NoticeService:
             raise HTTPException(404, "Notice not found")
 
         notice.is_pinned_feed = False
+        notice.expiry_date = None
         await self.notice_repo.update(notice)
 
         reloaded = await self.notice_repo.get_by_id(notice_id)
@@ -261,6 +263,7 @@ class NoticeService:
 
     async def list_feed(self, viewer_audience: Audience | None, limit: int = 50, offset: int = 0) -> list[NoticeRead]:
         notices = await self.notice_repo.list_all_approved(limit, offset)
+        await self._expire_stale_pins(notices)
         results = []
         for notice in notices:
             allowed = self.audience_allows(notice.audience, viewer_audience)
@@ -271,11 +274,12 @@ class NoticeService:
             results.append(data)
         return results
 
-
     async def list_for_admin(self, current_user: User, limit: int = 50, offset: int = 0) -> list[Notice]:
         if current_user.role.name not in ADMIN_ROLES:
             raise HTTPException(403, "Admin access required")
-        return await self.notice_repo.list_all_approved(limit, offset)
+        notices = await self.notice_repo.list_all_approved(limit, offset)
+        await self._expire_stale_pins(notices)
+        return notices
 
     async def list_all_for_oversight(
         self, current_user: User, limit: int, offset: int, search: str | None = None, status: NoticeStatus | None = None
@@ -347,5 +351,13 @@ class NoticeService:
 
     async def count_my_notices(self, current_user: User) -> dict[str, int]:
         return await self.notice_repo.count_by_author(current_user.id)
+
+    async def _expire_stale_pins(self, notices: list[Notice]) -> None:
+        now = datetime.now(timezone.utc)
+        for notice in notices:
+            if notice.is_pinned_feed and notice.expiry_date and notice.expiry_date <= now:
+                notice.is_pinned_feed = False
+                notice.expiry_date = None
+                await self.notice_repo.update(notice)
         
     

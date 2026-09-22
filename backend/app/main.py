@@ -11,13 +11,14 @@ from app.routes.admin_scope import router as admin_scope_router
 from app.routes.org_units import router as org_unit_router
 from app.routes.audit_logs import router as audit_log_router
 from app.routes.roles import router as role_router
+from app.routes.institutional_domains import router as institutional_domain_router
 
 
 app = FastAPI(title="Noticeboard V2 API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173","https://871e-102-215-78-89.ngrok-free.app","http://10.96.176.23:5173","http://192.168.137.1:5173","http://192.168.0.103:5173","http://192.168.100.75:5173"],
+    allow_origins=["http://localhost:5173","https://59c8-41-204-187-5.ngrok-free.app","http://10.96.176.30:5173","http://192.168.137.1:5173","http://192.168.0.103:5173","http://192.168.100.75:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,6 +35,7 @@ app.include_router(admin_scope_router)
 app.include_router(org_unit_router)
 app.include_router(audit_log_router)
 app.include_router(role_router)
+app.include_router(institutional_domain_router)
 
 @app.get("/health")
 def health_check() -> dict:

@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import APIRouter, Depends
-from app.schemas.notice_schema import NoticeRead, NoticeCreate,NoticeUpdate, NoticeReject
+from app.schemas.notice_schema import NoticeRead, NoticeCreate,NoticeUpdate, NoticeReject, NoticePinFeedRequest
 from app.models.user import User
 from app.services.notice_service import NoticeService
 from app.core.deps import get_db, get_current_user, get_optional_current_user
@@ -204,11 +204,12 @@ async def unpin_notice_site(
 @router.patch("/{id}/pin-feed", response_model=NoticeRead)
 async def pin_notice_feed(
     id: int,
+    data: NoticePinFeedRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     notice_service = NoticeService(db)
-    return await notice_service.pin_feed(id, current_user)
+    return await notice_service.pin_feed(id, data.expiry_date, current_user)
 
 
 @router.patch("/{id}/unpin-feed", response_model=NoticeRead)
