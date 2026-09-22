@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class AudienceVerifyRequest(BaseModel):
-    email: str
+    id_token: str
 
 class AudienceVerifyResponse(BaseModel):
     audience: str
