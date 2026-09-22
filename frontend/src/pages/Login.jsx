@@ -11,6 +11,7 @@ export default function AsymmetricLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const { showError, showSuccess } = useToast();
+  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleLogin = async (e) => {
@@ -18,11 +19,14 @@ export default function AsymmetricLoginPage() {
     setError(null);
     setSubmitting(true);
     try {
+      setLoading(true);
       await login(username, password);
       navigate('/dashboard');
     } catch (err) {
+      setLoading(false);
       showError(err.message)
     } finally {
+      setLoading(false);
       setSubmitting(false);
     }
   };
@@ -96,9 +100,9 @@ export default function AsymmetricLoginPage() {
           <div className="pt-2">
             <button 
               type="submit"
-              className="w-full bg-jkuat-green hover:bg-jkuat-green-dark text-white font-extrabold tracking-wide py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-[0.99] cursor-pointer text-center text-sm"
+              className={`w-full bg-jkuat-green hover:bg-jkuat-green-dark text-white font-extrabold tracking-wide py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-[0.99] cursor-pointer text-center text-sm ${loading ? 'opacity-50 cursor-not-allowed inactive' : ''}`}
             >
-              LOGIN TO PANEL →
+              {loading ? 'Logging in...' : 'LOGIN TO PANEL →'} 
             </button>
           </div>
 

@@ -1,12 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import APIRouter, Depends
-from app.schemas.notice_schema import NoticeRead, NoticeCreate,NoticeUpdate
+from app.schemas.notice_schema import NoticeRead, NoticeCreate,NoticeUpdate, NoticeReject
 from app.models.user import User
 from app.services.notice_service import NoticeService
 from app.core.deps import get_db, get_current_user, get_optional_current_user
 from app.core.deps import get_viewer_audience
-from app.models.notice import Audience
+from app.models.notice import Audience, NoticeStatus
 
 
 router = APIRouter(prefix="/notices", tags=["notices"])
@@ -32,25 +32,64 @@ async def get_feed(
     return await notice_service.list_feed(viewer_audience, limit, offset)
 
 @router.get("/pending", response_model=list[NoticeRead])
-async def list_pending(limit: int = 50,
-                       current_user: User = Depends(get_current_user),
-    offset: int = 0,
-    viewer_audience: Audience | None = Depends(get_viewer_audience),
-    db: AsyncSession = Depends(get_db)
-):
-    notice_service = NoticeService(db)
-    return await notice_service.list_pending(current_user,viewer_audience,limit,offset)
-
-@router.get("/mine", response_model=list[NoticeRead])
-async def get_my_notices(
+async def list_pending(
     limit: int = 50,
     offset: int = 0,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     notice_service = NoticeService(db)
-    notices = await notice_service.list_my_notices(current_user, limit, offset)
+    return await notice_service.list_pending(current_user, limit, offset)
+
+@router.get("/rejected", response_model=list[NoticeRead])
+async def list_rejected(
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    return await notice_service.list_rejected(current_user, limit, offset)
+
+@router.get("/rejected/count")
+async def count_rejected_notices(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    count = await notice_service.count_rejected(current_user)
+    return {"count": count}
+
+@router.get("/pending/count")
+async def count_pending_notices(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    count = await notice_service.count_pending(current_user)
+    return {"count": count}
+
+@router.get("/mine", response_model=list[NoticeRead])
+async def get_my_notices(
+    limit: int = 50,
+    offset: int = 0,
+    status: NoticeStatus | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    notices = await notice_service.list_my_notices(current_user, limit, offset, status)
     return [NoticeRead.model_validate(n) for n in notices]
+
+
+@router.get("/mine/counts")
+async def get_my_notice_counts(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    return await notice_service.count_my_notices(current_user)
+
 
 @router.get("/manage", response_model=list[NoticeRead])
 async def get_manage_notices(
@@ -68,12 +107,22 @@ async def get_all_notices(
     limit: int = 50,
     offset: int = 0,
     search: str | None = None,
+    status: NoticeStatus | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     notice_service = NoticeService(db)
-    notices = await notice_service.list_all_for_oversight(current_user, limit, offset, search)
+    notices = await notice_service.list_all_for_oversight(current_user, limit, offset, search, status)
     return [NoticeRead.model_validate(n) for n in notices]
+
+
+@router.get("/all/counts")
+async def get_all_notice_counts(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    return await notice_service.count_all_for_oversight(current_user)
 
 @router.get("/pinned-site", response_model=list[NoticeRead])
 async def get_pinned_site_notices(
@@ -83,6 +132,7 @@ async def get_pinned_site_notices(
     notice_service = NoticeService(db)
     notices = await notice_service.list_pinned_site(limit)
     return [NoticeRead.model_validate(n) for n in notices]
+
 
 @router.patch("/{id}", response_model=NoticeRead)
 async def update_notice(
@@ -122,9 +172,14 @@ async def approve_notice(id: int, current_user: User = Depends(get_current_user)
     return await noticeservice.approve(id, current_user)
 
 @router.patch("/{id}/reject", response_model=NoticeRead)
-async def reject_notice(id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def reject_notice(
+    id: int,
+    data: NoticeReject,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     noticeservice = NoticeService(db)
-    return await noticeservice.reject(id, current_user)
+    return await noticeservice.reject(id, data.rejection_notes, current_user)
 
 @router.patch("/{id}/pin-site", response_model=NoticeRead)
 async def pin_notice_site(

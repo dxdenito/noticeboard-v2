@@ -1,7 +1,6 @@
-// src/pages/dashboard/MyNotices.jsx
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Info } from "lucide-react";
 import { api } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
 import Pagination from "../../components/admin/Pagination";
@@ -20,6 +19,13 @@ const STATUS_LABEL = {
   rejected: "Rejected",
 };
 
+const TABS = [
+  { key: "all", label: "All" },
+  { key: "pending", label: "Pending" },
+  { key: "approved", label: "Approved" },
+  { key: "rejected", label: "Rejected" },
+];
+
 function stripHtml(html) {
   const div = document.createElement("div");
   div.innerHTML = html;
@@ -28,15 +34,28 @@ function stripHtml(html) {
 
 export default function MyNotices() {
   const [notices, setNotices] = useState([]);
+  const [counts, setCounts] = useState(null);
+  const [tab, setTab] = useState("all");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [openInfoId, setOpenInfoId] = useState(null);
   const { showError } = useToast();
   const navigate = useNavigate();
+
+  async function loadCounts() {
+    try {
+      const data = await api.get("/notices/mine/counts");
+      setCounts(data);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
 
   async function load() {
     setLoading(true);
     try {
-      const data = await api.get(`/notices/mine?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`);
+      const statusParam = tab === "all" ? "" : `&status=${tab}`;
+      const data = await api.get(`/notices/mine?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}${statusParam}`);
       setNotices(data);
     } catch (err) {
       showError(err.message);
@@ -45,7 +64,14 @@ export default function MyNotices() {
     }
   }
 
-  useEffect(() => { load(); }, [page]);
+  useEffect(() => { load(); }, [page, tab]);
+  useEffect(() => { loadCounts(); }, []);
+
+  function handleTabChange(key) {
+    setTab(key);
+    setPage(0);
+    setOpenInfoId(null);
+  }
 
   async function handleDelete(e, id) {
     e.preventDefault();
@@ -53,26 +79,46 @@ export default function MyNotices() {
     try {
       await api.delete(`/notices/${id}`);
       setNotices((prev) => prev.filter((n) => n.id !== id));
+      loadCounts();
     } catch (err) {
       showError(err.message);
     }
+  }
+
+  function toggleInfo(e, id) {
+    e.preventDefault();
+    setOpenInfoId((prev) => (prev === id ? null : id));
   }
 
   if (loading) return <div className="text-gray-400">Loading...</div>;
 
   return (
     <div>
-      <h1 className="text-2xl font-extrabold text-gray-900 mb-6">My Notices</h1>
+      <h1 className="text-2xl font-extrabold text-gray-900 mb-4">My Notices</h1>
+
+      <div className="flex gap-2 mb-6">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => handleTabChange(t.key)}
+            className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+              tab === t.key ? "bg-jkuat-green text-white" : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {t.label} {counts ? `(${t.key === "all" ? counts.total : counts[t.key]})` : ""}
+          </button>
+        ))}
+      </div>
 
       {notices.length === 0 ? (
-        <p className="text-sm text-gray-400">You haven't posted any notices yet.</p>
+        <p className="text-sm text-gray-400">Nothing here yet.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {notices.map((n) => (
             <Link
               key={n.id}
               to={`/notices/${n.id}`}
-              className="group flex flex-col bg-white border border-gray-100 rounded-lg overflow-hidden hover:border-gray-200 transition-colors"
+              className="group relative flex flex-col bg-white border border-gray-100 rounded-lg overflow-hidden hover:border-gray-200 transition-colors"
             >
               <div className={`h-1 ${STATUS_RAIL[n.status]}`} />
 
@@ -81,6 +127,15 @@ export default function MyNotices() {
                   <span>{STATUS_LABEL[n.status]}</span>
                   <span>·</span>
                   <span>{n.audience}</span>
+                  {n.status === "rejected" && n.rejection_notes && (
+                    <button
+                      onClick={(e) => toggleInfo(e, n.id)}
+                      title="View rejection notes"
+                      className="ml-auto text-gray-400 hover:text-jkuat-red"
+                    >
+                      <Info size={14} />
+                    </button>
+                  )}
                 </div>
 
                 <h3 className="font-serif text-lg font-bold text-gray-900 leading-snug line-clamp-2">
@@ -113,6 +168,18 @@ export default function MyNotices() {
                   </div>
                 </div>
               </div>
+
+              {openInfoId === n.id && (
+                <div
+                  onClick={(e) => e.preventDefault()}
+                  className="absolute top-9 right-3 z-10 w-56 bg-white border border-gray-200 rounded-md shadow-lg p-3"
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-jkuat-red mb-1">
+                    Rejection notes
+                  </p>
+                  <p className="text-xs text-gray-600 whitespace-pre-wrap">{n.rejection_notes}</p>
+                </div>
+              )}
             </Link>
           ))}
         </div>

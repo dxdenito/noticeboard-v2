@@ -52,7 +52,7 @@ class NoticeService:
         if not notice:
             raise HTTPException(404, "Notice not found")
 
-        if notice.status == NoticeStatus.PENDING:
+        if notice.status in (NoticeStatus.PENDING, NoticeStatus.REJECTED):
             can_preview = current_user is not None and (
                 notice.author_id == current_user.id
                 or await self.permission_service.can_approve_for(current_user, notice.org_unit_id)
@@ -62,9 +62,6 @@ class NoticeService:
             data = NoticeRead.model_validate(notice)
             data.is_locked = False
             return data
-
-        if notice.status != NoticeStatus.APPROVED:
-            raise HTTPException(404, "Notice not found")
 
         allowed = self.audience_allows(notice.audience, viewer_audience)
         data = NoticeRead.model_validate(notice)
@@ -91,13 +88,41 @@ class NoticeService:
         )
         return reloaded
 
-    async def list_pending(self, current_user: User, viewer_audience: Audience | None, limit: int, offset: int) -> list[Notice]:
-        candidates = await self.notice_repo.list_pending(viewer_audience, limit, offset)
+    async def list_pending(self, current_user: User, limit: int, offset: int) -> list[Notice]:
+        candidates = await self.notice_repo.list_pending(limit, offset)
         allowed = []
         for notice in candidates:
             if await self.permission_service.can_approve_for(current_user, notice.org_unit_id):
                 allowed.append(notice)
         return allowed
+
+    async def list_rejected(self, current_user: User, limit: int, offset: int) -> list[Notice]:
+        if current_user.role.name not in ("super_admin", "ict_sub_admin", "corporate_admin"):
+            raise HTTPException(403, "You don't have permission to view rejected notices")
+        candidates = await self.notice_repo.list_rejected(limit, offset)
+        allowed = []
+        for notice in candidates:
+            if await self.permission_service.can_approve_for(current_user, notice.org_unit_id):
+                allowed.append(notice)
+        return allowed
+
+    async def count_rejected(self, current_user: User) -> int:
+        if current_user.role.name not in ("super_admin", "ict_sub_admin", "corporate_admin"):
+            raise HTTPException(403, "You don't have permission to view rejected notices")
+        candidates = await self.notice_repo.list_rejected(limit=1000, offset=0)
+        count = 0
+        for notice in candidates:
+            if await self.permission_service.can_approve_for(current_user, notice.org_unit_id):
+                count += 1
+        return count
+
+    async def count_pending(self, current_user: User) -> int:
+        candidates = await self.notice_repo.list_pending(limit=1000, offset=0)
+        count = 0
+        for notice in candidates:
+            if await self.permission_service.can_approve_for(current_user, notice.org_unit_id):
+                count += 1
+        return count
 
     async def approve(self, notice_id: int, current_user: User) -> Notice:
         notice = await self.notice_repo.get_by_id(notice_id)
@@ -121,7 +146,7 @@ class NoticeService:
         )
         return reloaded
 
-    async def reject(self, notice_id: int, current_user: User) -> Notice:
+    async def reject(self, notice_id: int, rejection_notes: str, current_user: User) -> Notice:
         notice = await self.notice_repo.get_by_id(notice_id)
         if not notice:
             raise HTTPException(404, "Notice not found")
@@ -130,6 +155,7 @@ class NoticeService:
             raise HTTPException(403, "You are not scoped to reject this notice")
 
         notice.status = NoticeStatus.REJECTED
+        notice.rejection_notes = rejection_notes
         notice.reviewed_by_id = current_user.id
         notice.reviewed_at = datetime.now(timezone.utc)
         await self.notice_repo.update(notice)
@@ -245,18 +271,23 @@ class NoticeService:
             results.append(data)
         return results
 
-    async def list_my_notices(self, current_user: User, limit: int = 50, offset: int = 0) -> list[Notice]:
-        return await self.notice_repo.list_by_author(current_user.id, limit, offset)
 
     async def list_for_admin(self, current_user: User, limit: int = 50, offset: int = 0) -> list[Notice]:
         if current_user.role.name not in ADMIN_ROLES:
             raise HTTPException(403, "Admin access required")
         return await self.notice_repo.list_all_approved(limit, offset)
 
-    async def list_all_for_oversight(self, current_user: User, limit: int, offset: int, search: str | None = None) -> list[Notice]:
+    async def list_all_for_oversight(
+        self, current_user: User, limit: int, offset: int, search: str | None = None, status: NoticeStatus | None = None
+    ) -> list[Notice]:
         if current_user.role.name not in ("super_admin", "ict_sub_admin", "corporate_admin"):
             raise HTTPException(403, "You don't have permission to view all notices")
-        return await self.notice_repo.list_all(limit, offset, search)
+        return await self.notice_repo.list_all(limit, offset, search, status)
+
+    async def count_all_for_oversight(self, current_user: User) -> dict[str, int]:
+        if current_user.role.name not in ("super_admin", "ict_sub_admin", "corporate_admin"):
+            raise HTTPException(403, "You don't have permission to view all notices")
+        return await self.notice_repo.count_all()
 
     async def can_access_notice(self, notice_id: int, current_user: User | None, viewer_audience: Audience | None) -> bool:
         notice = await self.notice_repo.get_by_id(notice_id)
@@ -282,6 +313,7 @@ class NoticeService:
             setattr(notice, field, value)
 
         notice.status = await self._resolve_status(current_user)
+        notice.rejection_notes = None
 
         await self.notice_repo.update(notice)
         reloaded = await self.notice_repo.get_by_id(notice_id)
@@ -307,3 +339,13 @@ class NoticeService:
         await self.audit_log_service.log(
             current_user, "notice.delete", "notice", notice_id_for_log, title,
         )
+
+    async def list_my_notices(
+        self, current_user: User, limit: int = 50, offset: int = 0, status: NoticeStatus | None = None
+    ) -> list[Notice]:
+        return await self.notice_repo.list_by_author(current_user.id, limit, offset, status)
+
+    async def count_my_notices(self, current_user: User) -> dict[str, int]:
+        return await self.notice_repo.count_by_author(current_user.id)
+        
+    

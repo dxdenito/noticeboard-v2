@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     model_config = {"env_file": ".env"}
     UPLOAD_DIR: str = "uploads"
     cross_origin_cookies: bool = False
+    google_client_id: str
 
 
 settings = Settings()

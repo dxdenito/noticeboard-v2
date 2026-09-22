@@ -23,6 +23,7 @@ import NoticeDetail from "./pages/NoticeDetail";
 import EditNotice from "./pages/admin/EditNotice";
 import BrowseNotices from "./pages/BrowseNotices";
 import { canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits, isCorporateSuperAdmin, canViewAuditLog, canViewAllNotices } from "./lib/permissions";
+import RejectedNotices from "./pages/admin/RejectedNotices";
 
 function App() {
   return (
@@ -45,6 +46,9 @@ function App() {
           }/>
           <Route path="/dashboard/review-queue" element={
             <RequireCapability require={canApprove}><ReviewQueue/></RequireCapability>
+          }/>
+          <Route path="/dashboard/rejected-notices" element={
+            <RequireCapability require={canApprove}><RejectedNotices/></RequireCapability>
           }/>
           <Route path="/dashboard/users" element={
             <RequireCapability require={canManageUsers}><ManageUsers/></RequireCapability>

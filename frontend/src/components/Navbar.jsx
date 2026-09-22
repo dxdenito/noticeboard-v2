@@ -22,20 +22,25 @@ export default function Navbar(){
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const debounceRef = useRef(null);
   const mobileSearchInputRef = useRef(null);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      const params = new URLSearchParams(location.pathname === "/" ? location.search : "");
-      if (searchValue) {
-        params.set("q", searchValue);
-      } else {
-        params.delete("q");
-      }
-      const query = params.toString();
-      navigate(`/${query ? `?${query}` : ""}`, { replace: true });
-    }, 250);
-    return () => clearTimeout(debounceRef.current);
+    // if (isFirstRender.current) {
+    //   isFirstRender.current = false;
+    //   return;
+    // }
+    // if (debounceRef.current) clearTimeout(debounceRef.current);
+    // debounceRef.current = setTimeout(() => {
+    //   const params = new URLSearchParams(location.pathname === "/" ? location.search : "");
+    //   if (searchValue) {
+    //     params.set("q", searchValue);
+    //   } else {
+    //     params.delete("q");
+    //   }
+    //   const query = params.toString();
+    //   navigate(`/${query ? `?${query}` : ""}`, { replace: true });
+    // }, 250);
+    // return () => clearTimeout(debounceRef.current);
   }, [searchValue]);
 
   useEffect(() => {
@@ -51,7 +56,7 @@ export default function Navbar(){
           style={{ clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)', minWidth: '160px' }}
         >
           <img src={logo} className="h-9 md:h-10" alt="Jkuat Logo" />
-          <div className="hidden sm:flex flex-col leading-tight">
+          <div className=" flex flex-col leading-tight">
             <span className="font-extrabold text-lg tracking-wide uppercase">JKUAT</span>
             <span className="text-xs font-medium text-green-100 -mt-1">Noticeboard</span>
           </div>

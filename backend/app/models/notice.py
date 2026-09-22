@@ -47,6 +47,7 @@ class Notice(Base):
         nullable=False,
         default=NoticeStatus.PENDING,
     )
+    rejection_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_by_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True
     )

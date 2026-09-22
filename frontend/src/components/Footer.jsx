@@ -7,14 +7,14 @@ export default function Footer(){
                 <div className="md:flex md:justify-between">
                 <div className="mb-6 md:mb-0">
                     <a href="" className="flex items-center">
-                        <img src={logo} className="h-7 me-3" alt="FlowBite Logo" />
-                        <span className="text-heading self-center text-2xl font-semibold whitespace-nowrap">JKUAT Noticeboard</span>
+                        <img src={logo} className="h-7 me-3" alt="JKUAT Logo" />
+                        <span className="text-heading self-center text-2xl font-extrabold whitespace-nowrap">JKUAT Noticeboard</span>
                     </a>
                 </div>
                 <div className="grid grid-cols-2 gap-8 sm:gap-6 sm:grid-cols-3">
                     <div>
-                        <h2 className="mb-6 text-sm font-semibold text-heading uppercase">Resources</h2>
-                        <ul className="text-body font-medium">
+                        <h2 className="mb-6 text-md  font-extrabold text-heading uppercase">Resources</h2>
+                        <ul className="text-body text-decoration-underline font-medium">
                             <li className="mb-4">
                                 <a href="https://www.jkuat.ac.ke/" className="hover:underline">JKUAT website</a>
                             </li>
@@ -24,7 +24,7 @@ export default function Footer(){
                         </ul>
                     </div>
                     <div>
-                        <h2 className="mb-6 text-sm font-semibold text-heading uppercase">Follow us</h2>
+                        <h2 className="mb-6 text-md font-extrabold text-heading uppercase">Follow us</h2>
                         <ul className="text-body font-medium">
                             <li className="mb-4">
                                 <a href="https://www.facebook.com/DiscoverJKUAT" className="hover:underline ">Facebook</a>
@@ -35,7 +35,7 @@ export default function Footer(){
                         </ul>
                     </div>
                     <div>
-                        <h2 className="mb-6 text-sm font-semibold text-heading uppercase">Helpful Links</h2>
+                        <h2 className="mb-6 text-md font-extrabold text-heading uppercase">Helpful Links</h2>
                         <ul className="text-body font-medium">
                             <li className="mb-4">
                                 <a href="https://www.jkuat.ac.ke/faq/" className="hover:underline">Frequently Asked Questions</a>
@@ -49,7 +49,7 @@ export default function Footer(){
             </div>
             <hr className="my-6 border-default sm:mx-auto lg:my-8" />
             <div className="sm:flex sm:items-center sm:justify-between">
-                <span className="text-sm text-body sm:text-center">© 2026 <a href="https://www.jkuat.ac.ke" class="hover:underline">JKUAT</a>. All Rights Reserved.
+                <span className="text-sm text-body sm:text-center">&copy; {new Date().getFullYear()} <a href="https://www.jkuat.ac.ke" class="hover:underline">JKUAT</a>. All Rights Reserved.
                 </span>
                 <div className="flex mt-4 sm:justify-center sm:mt-0">
                     <a href="#" className="text-body hover:text-heading">

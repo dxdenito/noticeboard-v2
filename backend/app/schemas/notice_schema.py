@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from datetime import datetime
 
@@ -46,6 +46,7 @@ class NoticeRead(BaseModel):
     created_at: datetime
     is_pinned_feed: bool = False  
     status: NoticeStatus
+    rejection_notes: str | None = None
     reviewed_by: NoticeAuthorRead | None = None
     reviewed_at: datetime | None = None
     is_pinned_site: bool = False
@@ -62,3 +63,6 @@ class NoticeUpdate(BaseModel):
     audience: Audience | None = None
     org_unit_id: int | None = None
     expiry_date: datetime | None = None
+
+class NoticeReject(BaseModel):
+    rejection_notes: str = Field(..., min_length=1)

@@ -15,6 +15,13 @@ const STATUS_STYLES = {
   rejected: "bg-red-50 text-red-600",
 };
 
+const TABS = [
+  { key: "all", label: "All" },
+  { key: "pending", label: "Pending" },
+  { key: "approved", label: "Approved" },
+  { key: "rejected", label: "Rejected" },
+];
+
 function stripHtml(html) {
   const div = document.createElement("div");
   div.innerHTML = html;
@@ -24,6 +31,8 @@ function stripHtml(html) {
 export default function AllNotices() {
   const { user: currentUser } = useAuth();
   const [notices, setNotices] = useState([]);
+  const [counts, setCounts] = useState(null);
+  const [tab, setTab] = useState("all");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [searchInput, setSearchInput] = useState("");
@@ -42,6 +51,15 @@ export default function AllNotices() {
     return () => clearTimeout(debounceRef.current);
   }, [searchInput]);
 
+  async function loadCounts() {
+    try {
+      const data = await api.get("/notices/all/counts");
+      setCounts(data);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
   async function load() {
     setLoading(true);
     try {
@@ -50,6 +68,7 @@ export default function AllNotices() {
         offset: String(page * PAGE_SIZE),
       });
       if (search) params.set("search", search);
+      if (tab !== "all") params.set("status", tab);
       const data = await api.get(`/notices/all?${params.toString()}`);
       setNotices(data);
     } catch (err) {
@@ -59,7 +78,13 @@ export default function AllNotices() {
     }
   }
 
-  useEffect(() => { load(); }, [page, search]);
+  useEffect(() => { load(); }, [page, search, tab]);
+  useEffect(() => { loadCounts(); }, []);
+
+  function handleTabChange(key) {
+    setTab(key);
+    setPage(0);
+  }
 
   async function handleDelete(e, id) {
     e.preventDefault();
@@ -68,6 +93,7 @@ export default function AllNotices() {
       await api.delete(`/notices/${id}`);
       setNotices((prev) => prev.filter((n) => n.id !== id));
       showSuccess("Notice deleted");
+      loadCounts();
     } catch (err) {
       showError(err.message);
     }
@@ -76,6 +102,20 @@ export default function AllNotices() {
   return (
     <div>
       <h1 className="text-2xl font-extrabold text-gray-900 mb-4">All Notices</h1>
+
+      <div className="flex gap-2 mb-4">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => handleTabChange(t.key)}
+            className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+              tab === t.key ? "bg-jkuat-green text-white" : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {t.label} {counts ? `(${t.key === "all" ? counts.total : counts[t.key]})` : ""}
+          </button>
+        ))}
+      </div>
 
       <div className="relative mb-4 max-w-sm">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -116,6 +156,11 @@ export default function AllNotices() {
                       </>
                     )}
                   </p>
+                  {n.status === "rejected" && n.rejection_notes && (
+                    <p className="text-[11px] text-jkuat-red mt-1 italic line-clamp-1">
+                      "{n.rejection_notes}"
+                    </p>
+                  )}
                 </div>
                 {canDelete && (
                   <button
