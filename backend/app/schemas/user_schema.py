@@ -7,11 +7,21 @@ class UserCreate(BaseModel):
     password: str
     full_name: str
 
+class UserOrgUnitRead(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        from_attributes = True
+
 
 class UserRead(BaseModel):
     id: int
     email: EmailStr
     full_name: str
+    pf_number: str
+    org_unit_id: int
+    org_unit: UserOrgUnitRead
     role: RoleRead
     is_active: bool
     can_approve: bool | None
@@ -40,6 +50,8 @@ class UserCreateByAdmin(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+    pf_number: str
+    org_unit_id: int
     role_id: int
     requires_approval: bool | None = None
     can_approve: bool | None = None
@@ -54,6 +66,8 @@ class UserCreateByAdmin(BaseModel):
 
 class UserUpdate(BaseModel):
     full_name: str | None = None
+    pf_number: str | None = None
+    org_unit_id: int | None = None
     role_id: int | None = None
     requires_approval: bool | None = None
     can_approve: bool | None = None

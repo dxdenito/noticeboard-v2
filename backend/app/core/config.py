@@ -12,6 +12,12 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads"
     cross_origin_cookies: bool = False
     google_client_id: str
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_username: str
+    smtp_password: str
+    smtp_from_email: str
+    frontend_base_url: str
 
 
 settings = Settings()

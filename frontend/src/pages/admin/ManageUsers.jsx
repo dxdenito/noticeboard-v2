@@ -90,13 +90,14 @@ export default function ManageUsers() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [allOrgUnits, setAllOrgUnits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const debounceRef = useRef(null);
   const [form, setForm] = useState({
-    email: "", password: "", full_name: "", role_id: "",
+    email: "", password: "", full_name: "", pf_number: "", org_unit_id: "", role_id: "",
     requires_approval: "false", ...EMPTY_CAPS,
   });
   const [submitting, setSubmitting] = useState(false);
@@ -122,6 +123,15 @@ export default function ManageUsers() {
   function roleNameOf(roleId) {
     const role = roles.find((r) => String(r.id) === String(roleId));
     return role?.name;
+  }
+
+  async function loadAllOrgUnits() {
+    try {
+      const tree = await api.get("/org-units/tree");
+      setAllOrgUnits(flattenTree(tree));
+    } catch (err) {
+      showError(err.message);
+    }
   }
 
   async function openWorkflow(u) {
@@ -179,7 +189,7 @@ export default function ManageUsers() {
   }
 
   useEffect(() => { loadUsers(); }, [page, search]);
-  useEffect(() => { loadRoles(); }, []);
+  useEffect(() => { loadRoles(); loadAllOrgUnits(); }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -191,6 +201,8 @@ export default function ManageUsers() {
         email: form.email,
         password: form.password,
         full_name: form.full_name,
+        pf_number: form.pf_number,
+        org_unit_id: Number(form.org_unit_id),
         role_id: Number(form.role_id),
         requires_approval: selectedRole === "web_admin" ? form.requires_approval === "true" : null,
         can_approve: eligible ? form.can_approve : null,
@@ -203,8 +215,8 @@ export default function ManageUsers() {
         can_assign_approve_scope: eligible ? form.can_assign_approve_scope : null,
       };
       await api.post("/users/", payload);
-      showSuccess("User created");
-      setForm({ email: "", password: "", full_name: "", role_id: "", requires_approval: "false", ...EMPTY_CAPS });
+      showSuccess("User created — an activation email has been sent");
+      setForm({ email: "", password: "", full_name: "", pf_number: "", org_unit_id: "", role_id: "", requires_approval: "false", ...EMPTY_CAPS });
       loadUsers();
     } catch (err) {
       showError(err.message);
@@ -228,6 +240,8 @@ export default function ManageUsers() {
       const selectedRole = roleNameOf(editingUser.role_id);
       const eligible = RIGHTS_ELIGIBLE_ROLES.includes(selectedRole);
       await api.patch(`/users/${editingUser.id}`, {
+        pf_number: editingUser.pf_number,
+        org_unit_id: Number(editingUser.org_unit_id),
         role_id: Number(editingUser.role_id),
         requires_approval: selectedRole === "web_admin" ? editingUser.requires_approval === "true" : null,
         can_approve: eligible ? editingUser.can_approve : null,
@@ -258,10 +272,19 @@ export default function ManageUsers() {
         <input type="text" placeholder="Full name" required value={form.full_name}
           onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-        <input type="email" placeholder="Email" required value={form.email}
+        <input type="email" placeholder="Institutional email" required value={form.email}
           onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-        <input type="password" placeholder="Password" required value={form.password}
+        <input type="text" placeholder="PF number" required value={form.pf_number}
+          onChange={(e) => setForm((f) => ({ ...f, pf_number: e.target.value }))}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+        <select required value={form.org_unit_id}
+          onChange={(e) => setForm((f) => ({ ...f, org_unit_id: e.target.value }))}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <option value="">Department / office</option>
+          {allOrgUnits.map((u) => <option key={u.id} value={u.id}>{u.label}</option>)}
+        </select>
+        <input type="password" placeholder="Temporary password" required value={form.password}
           onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
         <select required value={form.role_id}
@@ -298,7 +321,7 @@ export default function ManageUsers() {
           type="text"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Search by name or email..."
+          placeholder="Search by name, email, PF number, or department..."
           className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-jkuat-green/40"
         />
       </div>
@@ -317,6 +340,9 @@ export default function ManageUsers() {
                   <div className="min-w-0">
                     <p className="font-semibold text-sm text-gray-900 truncate">{u.full_name}</p>
                     <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                    <p className="text-[11px] text-gray-400 truncate">
+                      PF {u.pf_number} · {u.org_unit?.name}
+                    </p>
                   </div>
                 </div>
 
@@ -326,7 +352,7 @@ export default function ManageUsers() {
                   </span>
                   {!u.is_active && (
                     <span className="text-[10px] font-bold uppercase text-jkuat-red bg-red-50 px-2 py-0.5 rounded">
-                      Deactivated
+                      Inactive
                     </span>
                   )}
                 </div>
@@ -335,6 +361,8 @@ export default function ManageUsers() {
                   <button
                     onClick={() => setEditingUser({
                       id: u.id,
+                      pf_number: u.pf_number,
+                      org_unit_id: String(u.org_unit_id),
                       role_id: String(u.role.id),
                       requires_approval: String(u.requires_approval ?? false),
                       can_approve: u.can_approve ?? false,
@@ -380,8 +408,27 @@ export default function ManageUsers() {
 
       {editingUser && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full">
-            <h3 className="font-bold text-lg mb-4">Edit User Role</h3>
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full max-h-[85vh] overflow-y-auto">
+            <h3 className="font-bold text-lg mb-4">Edit User</h3>
+
+            <label className="block text-xs font-medium text-gray-500 mb-1">PF number</label>
+            <input
+              type="text"
+              value={editingUser.pf_number}
+              onChange={(e) => setEditingUser((prev) => ({ ...prev, pf_number: e.target.value }))}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
+            />
+
+            <label className="block text-xs font-medium text-gray-500 mb-1">Department / office</label>
+            <select
+              value={editingUser.org_unit_id}
+              onChange={(e) => setEditingUser((prev) => ({ ...prev, org_unit_id: e.target.value }))}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
+            >
+              {allOrgUnits.map((u) => <option key={u.id} value={u.id}>{u.label}</option>)}
+            </select>
+
+            <label className="block text-xs font-medium text-gray-500 mb-1">Role</label>
             <select
               value={editingUser.role_id}
               onChange={(e) => setEditingUser((prev) => ({ ...prev, role_id: e.target.value }))}

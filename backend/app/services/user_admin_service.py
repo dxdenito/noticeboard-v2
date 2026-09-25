@@ -1,12 +1,14 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status
+from fastapi import HTTPException, BackgroundTasks, status
 
 from app.core.config import settings
 from app.repositories.user_repository import UserRepository
 from app.repositories.role_repository import RoleRepository
+from app.services.institutional_domain_service import InstitutionalDomainService
+from app.services.email_service import EmailService
+from app.core.security import hash_password, create_activation_token
 from app.models.user import User
 from app.schemas.user_schema import UserCreateByAdmin, UserUpdate
-from app.core.security import hash_password
 
 TRUSTED_ROLE_NAMES = ("super_admin",)
 CAPABILITY_FIELDS = (
@@ -21,6 +23,8 @@ class UserAdminService:
         self.db = db
         self.user_repo = UserRepository(db)
         self.role_repo = RoleRepository(db)
+        self.institutional_domain_service = InstitutionalDomainService(db)
+        self.email_service = EmailService()
 
     def _has_manage_users_right(self, current_user: User) -> bool:
         if current_user.role.name == "super_admin":
@@ -29,7 +33,9 @@ class UserAdminService:
             return bool(current_user.can_manage_users)
         return False
 
-    async def create_user(self, data: UserCreateByAdmin, current_user: User) -> User:
+    async def create_user(
+        self, data: UserCreateByAdmin, current_user: User, background_tasks: BackgroundTasks
+    ) -> User:
         if not self._has_manage_users_right(current_user):
             raise HTTPException(403, "You don't have permission to create users")
 
@@ -45,14 +51,21 @@ class UserAdminService:
                 if getattr(data, field) not in (None, False):
                     raise HTTPException(403, "Only super_admin can set capability flags on a new account")
 
-        existing = await self.user_repo.get_by_email(data.email)
+        email = data.email.strip().lower()
+
+        if await self.institutional_domain_service.resolve_audience(email) is None:
+            raise HTTPException(400, "This email doesn't match a recognized institutional domain")
+
+        existing = await self.user_repo.get_by_email(email)
         if existing:
             raise HTTPException(400, "Email already registered")
 
         new_user = User(
-            email=data.email,
+            email=email,
             hashed_password=hash_password(data.password),
             full_name=data.full_name,
+            pf_number=data.pf_number,
+            org_unit_id=data.org_unit_id,
             role_id=data.role_id,
             requires_approval=data.requires_approval,
             can_approve=data.can_approve,
@@ -64,14 +77,39 @@ class UserAdminService:
             can_assign_post_scope=data.can_assign_post_scope,
             can_assign_approve_scope=data.can_assign_approve_scope,
             can_delete_notice=data.can_delete_notice,
-            is_active=True,
+            is_active=False,
         )
         await self.user_repo.create_user(new_user)
 
-        reloaded = await self.user_repo.get_by_email(data.email)
+        reloaded = await self.user_repo.get_by_email(email)
         if reloaded is None:
             raise HTTPException(500, "User creation failed unexpectedly")
+
+        token = create_activation_token(reloaded.id)
+        activation_link = f"{settings.frontend_base_url}/activate?token={token}"
+        background_tasks.add_task(
+            self.email_service.send_activation_email, reloaded.email, reloaded.full_name, activation_link
+        )
+
         return reloaded
+
+    async def activate_account(self, token: str) -> User:
+        from app.core.security import decode_access_token
+
+        payload = decode_access_token(token)
+        if payload is None or payload.get("type") != "account_activation":
+            raise HTTPException(400, "This activation link is invalid or has expired")
+
+        user_id = payload.get("sub")
+        user = await self.user_repo.get_by_id(int(user_id))
+        if user is None:
+            raise HTTPException(404, "Account not found")
+
+        if user.is_active:
+            raise HTTPException(400, "This account is already active")
+
+        user.is_active = True
+        return await self.user_repo.update(user)
 
     async def update_user(self, user_id: int, data: UserUpdate, current_user: User) -> User:
         if not self._has_manage_users_right(current_user):

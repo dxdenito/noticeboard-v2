@@ -25,6 +25,7 @@ import BrowseNotices from "./pages/BrowseNotices";
 import { canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits, isCorporateSuperAdmin, canViewAuditLog, canViewAllNotices, canManageInstitutionalDomains } from "./lib/permissions";
 import ManageInstitutionalDomains from "./pages/admin/ManageInstitutionalDomains";
 import AdminNoticeDetail from "./pages/admin/AdminNoticeDetail";
+import Activate from "./pages/Activate";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
      <ToastProvider>
       <Routes>
         <Route path="/login" element={<AsymmetricLoginPage />} />
+        <Route path="/activate" element={<Activate />} />
         <Route element={<MainLayout/>}>
           <Route path="/" element={<AsymmetricNoticeboard />} />          
           <Route path="/notices/:id" element={<NoticeDetail />} />

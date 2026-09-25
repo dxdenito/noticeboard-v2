@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from app.models.role import Role
     from app.models.notice import Notice
     from app.models.admin_scope import AdminScope
+    from app.models.org_unit import OrgUnit
 
 
 class User(Base):
@@ -18,6 +19,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    pf_number: Mapped[str] = mapped_column(String(50), nullable=False)
+    org_unit_id: Mapped[int] = mapped_column(Integer, ForeignKey("org_units.id"), nullable=False)
     role_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("roles.id"), nullable=False
     )
@@ -39,6 +42,7 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     role: Mapped["Role"] = relationship("Role", back_populates="users")
+    org_unit: Mapped["OrgUnit"] = relationship("OrgUnit")
     notices: Mapped[list["Notice"]] = relationship(
         "Notice", foreign_keys="[Notice.author_id]", back_populates="author"
     )

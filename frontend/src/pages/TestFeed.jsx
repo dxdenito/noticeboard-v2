@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Lock, Building2 } from 'lucide-react';
 import image from '../images/image-1.jpg';
 import placeholderTwo from '../images/image-2.jpg';
 import placeholderThree from '../images/image-3.jpg';
@@ -9,12 +8,10 @@ import AudienceVerify from '../components/AudienceVerify';
 import { useNoticeSearch } from '../hooks/useNoticeSearch';
 import { getFileKind } from '../lib/fileType';
 import AttachmentThumb from '../components/AttachmentThumb';
+import { AUDIENCE_LABELS, audienceStyle } from '../lib/audience';
+import { Lock, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const AUDIENCE_LABELS = {
-  public: "Public",
-  student: "Student",
-  staff: "Staff",
-};
+
 
 const PILL_PALETTE = [
   { bg: "bg-jkuat-blue/10", text: "text-jkuat-blue" },
@@ -115,6 +112,22 @@ export default function AsymmetricNoticeboard() {
 
   const filteredNotices = useNoticeSearch(notices, searchQuery);
 
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  function updateScrollState() {
+    const el = urgentScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }
+
+  function scrollPinned(direction) {
+    const el = urgentScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: "smooth" });
+  }
+
   async function loadFeed() {
     try {
       const data = await api.get("/notices/");
@@ -126,17 +139,32 @@ export default function AsymmetricNoticeboard() {
     }
   }
 
+
+  const pinned = filteredNotices.filter((n) => n.is_pinned_feed);
+  const rest = filteredNotices.filter((n) => !n.is_pinned_feed);
+
   useEffect(() => {
     loadFeed();
   }, []);
+
+  useEffect(() => {
+    updateScrollState();
+    const el = urgentScrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateScrollState);
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [pinned.length]);
 
   function handleVerified(newAudience) {
     setAudience(newAudience);
     loadFeed();
   }
 
-  const pinned = filteredNotices.filter((n) => n.is_pinned_feed);
-  const rest = filteredNotices.filter((n) => !n.is_pinned_feed);
+
 
   function formatDateParts(isoString) {
     const d = new Date(isoString);
@@ -187,14 +215,34 @@ export default function AsymmetricNoticeboard() {
               </h2>
             </div>
 
-            <div
-              ref={urgentScrollRef}
-              className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory scrollbar-none"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              <style>{`div::-webkit-scrollbar { display: none; }`}</style>
+            <div className="relative">
+              {canScrollLeft && (
+                <button
+                  onClick={() => scrollPinned(-1)}
+                  aria-label="Scroll left"
+                  className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 items-center justify-center w-9 h-9 rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:text-jkuat-red hover:border-jkuat-red/40 transition-colors"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+              )}
+              {canScrollRight && (
+                <button
+                  onClick={() => scrollPinned(1)}
+                  aria-label="Scroll right"
+                  className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 items-center justify-center w-9 h-9 rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:text-jkuat-red hover:border-jkuat-red/40 transition-colors"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              )}
 
-              {pinned.map((notice) => {
+              <div
+                ref={urgentScrollRef}
+                className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory scrollbar-none"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                <style>{`div::-webkit-scrollbar { display: none; }`}</style>
+
+                {pinned.map((notice) => {
                 const { day, month, year } = formatDateParts(notice.created_at);
                 return (
                   <div
@@ -253,6 +301,7 @@ export default function AsymmetricNoticeboard() {
                 );
               })}
             </div>
+            </div>
           </section>
         )}
 
@@ -261,13 +310,13 @@ export default function AsymmetricNoticeboard() {
             <div className="text-center relative flex items-center justify-center">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
               <span className="relative bg-white px-6 text-xs font-black tracking-widest text-green-600 uppercase">
-                {searchQuery ? `Results for "${searchQuery}"` : "Latest notices"}
+                {searchQuery ? `Results for "${searchQuery}"` : "//Latest notices"}
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
               {rest.map((notice) => {
-                const pill = pillStyle(notice.id);
+                const pill = audienceStyle(notice.audience);
                 const excerpt = stripHtml(notice.body);
 
                 return (

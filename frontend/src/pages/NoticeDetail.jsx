@@ -5,12 +5,9 @@ import { api } from "../api/client";
 import AudienceVerify from "../components/AudienceVerify";
 import { formatFileSize } from "../lib/fileType";
 import AttachmentThumb from "../components/AttachmentThumb";
+import { AUDIENCE_LABELS, audienceStyle } from "../lib/audience";
 
-const AUDIENCE_LABELS = {
-  public: "Public",
-  student: "Student",
-  staff: "Staff",
-};
+
 
 function formatFullDateTime(isoString) {
   const d = new Date(isoString);
@@ -131,7 +128,7 @@ export default function NoticeDetail() {
 
         <div className={notice.is_locked ? "blur-sm pointer-events-none select-none" : ""}>
           <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <span className="inline-block bg-green-50 text-green-700 border border-green-200 text-[10px] font-black tracking-wider px-2.5 py-0.5 rounded-full uppercase">
+            <span className={`inline-block ${audienceStyle(notice.audience).bg} ${audienceStyle(notice.audience).text} text-[10px] font-black tracking-wider px-2.5 py-0.5 rounded-full uppercase`}>
               {AUDIENCE_LABELS[notice.audience] || notice.audience}
             </span>
             {notice.category?.name && (

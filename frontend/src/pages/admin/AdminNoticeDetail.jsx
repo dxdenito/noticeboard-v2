@@ -9,12 +9,7 @@ import { formatFileSize } from "../../lib/fileType";
 import AttachmentThumb from "../../components/AttachmentThumb";
 import RejectModal from "../../components/admin/RejectModal";
 import { PENDING_COUNT_CHANGED_EVENT } from "../../layouts/AdminLayout";
-
-const AUDIENCE_LABELS = {
-  public: "Public",
-  student: "Student",
-  staff: "Staff",
-};
+import { AUDIENCE_LABELS, audienceStyle } from "../../lib/audience";
 
 const STATUS_STYLES = {
   approved: "bg-jkuat-green/10 text-jkuat-green",
@@ -151,7 +146,7 @@ export default function AdminNoticeDetail() {
             <span className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full ${STATUS_STYLES[notice.status]}`}>
               {STATUS_LABEL[notice.status]}
             </span>
-            <span className="inline-block bg-gray-100 text-gray-600 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+            <span className={`inline-block ${audienceStyle(notice.audience).bg} ${audienceStyle(notice.audience).text} text-[10px] font-black tracking-wider px-2.5 py-0.5 rounded-full uppercase`}>
               {AUDIENCE_LABELS[notice.audience] || notice.audience}
             </span>
             {notice.category?.name && (

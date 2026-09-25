@@ -34,7 +34,7 @@ class AuthService:
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Your account has been deactivated. Contact an administrator.",
+                detail="Your account is inactive. If you haven't activated it yet, check your email — otherwise contact an administrator.",
             )
 
         return user
