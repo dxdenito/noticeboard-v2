@@ -17,6 +17,7 @@ class AuthService:
         self.email_service = EmailService()
 
     async def authenticate(self, email: str, password: str) -> User:
+        email = email.strip().lower()
         user = await self.user_repo.get_by_email(email)
         if not user:
             raise HTTPException(

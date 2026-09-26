@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from app.schemas.notice_schema import NoticeRead, NoticeCreate,NoticeUpdate, NoticeReject, NoticePinFeedRequest
 from app.models.user import User
 from app.services.notice_service import NoticeService
@@ -14,12 +14,12 @@ router = APIRouter(prefix="/notices", tags=["notices"])
 @router.post("/", response_model=NoticeRead)
 async def create_notice(
     data: NoticeCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     notice_service = NoticeService(db)
-    return await notice_service.create(data, current_user)
-
+    return await notice_service.create(data, current_user, background_tasks)
 
 @router.get("/", response_model=list[NoticeRead])
 async def get_feed(
@@ -167,19 +167,25 @@ async def get_notice(
 
         
 @router.patch("/{id}/approve", response_model=NoticeRead)
-async def approve_notice(id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def approve_notice(
+    id: int,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     noticeservice = NoticeService(db)
-    return await noticeservice.approve(id, current_user)
+    return await noticeservice.approve(id, current_user, background_tasks)
 
 @router.patch("/{id}/reject", response_model=NoticeRead)
 async def reject_notice(
     id: int,
     data: NoticeReject,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     noticeservice = NoticeService(db)
-    return await noticeservice.reject(id, data.rejection_notes, current_user)
+    return await noticeservice.reject(id, data.rejection_notes, current_user, background_tasks)
 
 @router.patch("/{id}/pin-site", response_model=NoticeRead)
 async def pin_notice_site(

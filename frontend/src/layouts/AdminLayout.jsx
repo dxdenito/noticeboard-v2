@@ -1,5 +1,5 @@
 import AdminNavbar from "../components/admin/AdminNavbar";
-import { Menu, X, LayoutDashboard, PlusCircle, FileText, CheckSquare, Users, Tags, Pin, LogOut, Network, Building2, ScrollText, LayoutList, Mail, KeyRound } from "lucide-react";
+import { Menu, X, LayoutDashboard, PlusCircle, FileText, CheckSquare, Users, Tags, Pin, LogOut, Network, Building2, ScrollText, LayoutList, Mail, KeyRound, CalendarPlus, CalendarDays } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate, Link, Outlet } from "react-router-dom";
@@ -9,6 +9,8 @@ import { api } from "../api/client";
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: isAdmin },
   { to: "/dashboard/post", label: "Post Notice", icon: PlusCircle, show: isAdmin },
+  { to: "/dashboard/post-event", label: "Post Event", icon: CalendarPlus, show: isAdmin },
+  { to: "/dashboard/my-events", label: "My Events", icon: CalendarDays, show: isAdmin },
   { to: "/dashboard/my-notices", label: "My Notices", icon: FileText, show: isAdmin },
   { to: "/dashboard/all-notices", label: "All Notices", icon: LayoutList, show: canViewAllNotices },
   { to: "/dashboard/review-queue", label: "Review Queue", icon: CheckSquare, show: canApprove, badgeKey: "pending" },
@@ -19,7 +21,8 @@ const NAV_ITEMS = [
   { to: "/dashboard/org-units", label: "Org Units", icon: Network, show: canManageOrgUnits },
   { to: "/dashboard/institutional-domains", label: "Institutional Domains", icon: Mail, show: canManageInstitutionalDomains },
   { to: "/dashboard/audit-log", label: "Audit Log", icon: ScrollText, show: canViewAuditLog },
-{ to: "/dashboard/change-password", label: "Change Password", icon: KeyRound, show: isAdmin },
+  { to: "/dashboard/change-password", label: "Change Password", icon: KeyRound, show: isAdmin },
+
 ];
 
 export const PENDING_COUNT_CHANGED_EVENT = "pending-count-changed";

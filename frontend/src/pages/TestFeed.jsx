@@ -9,21 +9,11 @@ import { useNoticeSearch } from '../hooks/useNoticeSearch';
 import { getFileKind } from '../lib/fileType';
 import AttachmentThumb from '../components/AttachmentThumb';
 import { AUDIENCE_LABELS, audienceStyle } from '../lib/audience';
-import { Lock, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
-
-
-
-const PILL_PALETTE = [
-  { bg: "bg-jkuat-blue/10", text: "text-jkuat-blue" },
-  { bg: "bg-jkuat-green/10", text: "text-jkuat-green" },
-  { bg: "bg-jkuat-red/10", text: "text-jkuat-red" },
-];
+import { Lock, Building2, ChevronLeft, ChevronRight, MapPin, Calendar, ArrowRight } from 'lucide-react';
 
 const PLACEHOLDER_IMAGES = [image, placeholderTwo, placeholderThree];
-
-function pillStyle(id) {
-  return PILL_PALETTE[id % PILL_PALETTE.length];
-}
+const EVENTS_CAROUSEL_LIMIT = 12;
+const NOTICES_PAGE_SIZE = 9;
 
 function placeholderFor(id) {
   return PLACEHOLDER_IMAGES[id % PLACEHOLDER_IMAGES.length];
@@ -49,6 +39,14 @@ function formatFullDateTime(isoString) {
   const datePart = d.toLocaleDateString("default", { day: "numeric", month: "short", year: "numeric" });
   const timePart = d.toLocaleTimeString("default", { hour: "numeric", minute: "2-digit" });
   return `${datePart} · ${timePart}`;
+}
+
+function formatEventDateShort(isoString) {
+  const d = new Date(isoString);
+  return {
+    day: d.getDate(),
+    month: d.toLocaleString("default", { month: "short" }).toUpperCase(),
+  };
 }
 
 function categoryName(notice) {
@@ -103,6 +101,8 @@ function FeedSkeleton() {
 
 export default function AsymmetricNoticeboard() {
   const urgentScrollRef = useRef(null);
+  const eventsScrollRef = useRef(null);
+  const autoScrollTimerRef = useRef(null);
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [audience, setAudience] = useState(null);
@@ -110,7 +110,17 @@ export default function AsymmetricNoticeboard() {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("q") || "";
 
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [hasMoreEvents, setHasMoreEvents] = useState(false);
+  const [eventsCanScrollLeft, setEventsCanScrollLeft] = useState(false);
+  const [eventsCanScrollRight, setEventsCanScrollRight] = useState(false);
+  const [eventsAutoScrollPaused, setEventsAutoScrollPaused] = useState(false);
+
+  const [visibleNoticesCount, setVisibleNoticesCount] = useState(NOTICES_PAGE_SIZE);
+
   const filteredNotices = useNoticeSearch(notices, searchQuery);
+  const pinned = filteredNotices.filter((n) => n.is_pinned_feed);
+  const rest = filteredNotices.filter((n) => !n.is_pinned_feed);
 
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -139,13 +149,24 @@ export default function AsymmetricNoticeboard() {
     }
   }
 
-
-  const pinned = filteredNotices.filter((n) => n.is_pinned_feed);
-  const rest = filteredNotices.filter((n) => !n.is_pinned_feed);
+  async function loadUpcomingEvents() {
+    try {
+      const data = await api.get(`/events/upcoming?limit=${EVENTS_CAROUSEL_LIMIT + 1}`);
+      setHasMoreEvents(data.length > EVENTS_CAROUSEL_LIMIT);
+      setUpcomingEvents(data.slice(0, EVENTS_CAROUSEL_LIMIT));
+    } catch {
+      // quiet — public page, degrade gracefully
+    }
+  }
 
   useEffect(() => {
     loadFeed();
+    loadUpcomingEvents();
   }, []);
+
+  useEffect(() => {
+    setVisibleNoticesCount(NOTICES_PAGE_SIZE);
+  }, [searchQuery]);
 
   useEffect(() => {
     updateScrollState();
@@ -159,12 +180,50 @@ export default function AsymmetricNoticeboard() {
     };
   }, [pinned.length]);
 
+  function updateEventsScrollState() {
+    const el = eventsScrollRef.current;
+    if (!el) return;
+    setEventsCanScrollLeft(el.scrollLeft > 4);
+    setEventsCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }
+
+  function scrollEvents(direction) {
+    const el = eventsScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: "smooth" });
+  }
+
+  useEffect(() => {
+    updateEventsScrollState();
+    const el = eventsScrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateEventsScrollState);
+    window.addEventListener("resize", updateEventsScrollState);
+    return () => {
+      el.removeEventListener("scroll", updateEventsScrollState);
+      window.removeEventListener("resize", updateEventsScrollState);
+    };
+  }, [upcomingEvents.length]);
+
+  useEffect(() => {
+    if (eventsAutoScrollPaused || upcomingEvents.length <= 1) return;
+    autoScrollTimerRef.current = setInterval(() => {
+      const el = eventsScrollRef.current;
+      if (!el) return;
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+      if (atEnd) {
+        el.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        el.scrollBy({ left: 320, behavior: "smooth" });
+      }
+    }, 4000);
+    return () => clearInterval(autoScrollTimerRef.current);
+  }, [eventsAutoScrollPaused, upcomingEvents.length]);
+
   function handleVerified(newAudience) {
     setAudience(newAudience);
     loadFeed();
   }
-
-
 
   function formatDateParts(isoString) {
     const d = new Date(isoString);
@@ -196,6 +255,8 @@ export default function AsymmetricNoticeboard() {
       </div>
     );
   }
+
+  const visibleNotices = rest.slice(0, visibleNoticesCount);
 
   return (
     <div className="w-full min-h-screen bg-white text-gray-900 font-sans p-4 md:p-8 select-none">
@@ -243,64 +304,172 @@ export default function AsymmetricNoticeboard() {
                 <style>{`div::-webkit-scrollbar { display: none; }`}</style>
 
                 {pinned.map((notice) => {
-                const { day, month, year } = formatDateParts(notice.created_at);
-                return (
-                  <div
-                    key={notice.id}
-                    className="group flex-none w-[350px] md:w-[430px] h-44 bg-[#F2F7E6] flex items-stretch snap-start relative overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-200/70"
-                  >
-                    {notice.is_locked && <LockOverlay />}
-                    <div className={notice.is_locked ? "flex w-full blur-sm pointer-events-none select-none" : "flex w-full"}>
-                      <div
-                        className="w-16 bg-red-600 text-white flex flex-col items-center justify-center font-sans font-black py-4 leading-none relative z-10 pl-2 pr-4 shrink-0"
-                        style={{ clipPath: 'polygon(0 0, 100% 0, 75% 100%, 0 100%)' }}
-                      >
-                        <span className="text-xl tracking-tight">{day}</span>
-                        <span className="text-[10px] tracking-widest uppercase my-1 font-bold">{month}</span>
-                        <span className="text-[9px] opacity-80 tracking-wider mt-1">{year}</span>
-                      </div>
-
-                      <div className="flex-1 flex p-4 gap-4 items-center min-w-0 -ml-2">
-                        <div className="w-24 h-full rounded-xl overflow-hidden shrink-0">
-                          <NoticeMedia notice={notice} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                  const { day, month, year } = formatDateParts(notice.created_at);
+                  return (
+                    <div
+                      key={notice.id}
+                      className="group flex-none w-[350px] md:w-[430px] h-44 bg-[#F2F7E6] flex items-stretch snap-start relative overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-200/70"
+                    >
+                      {notice.is_locked && <LockOverlay />}
+                      <div className={notice.is_locked ? "flex w-full blur-sm pointer-events-none select-none" : "flex w-full"}>
+                        <div
+                          className="w-16 bg-red-600 text-white flex flex-col items-center justify-center font-sans font-black py-4 leading-none relative z-10 pl-2 pr-4 shrink-0"
+                          style={{ clipPath: 'polygon(0 0, 100% 0, 75% 100%, 0 100%)' }}
+                        >
+                          <span className="text-xl tracking-tight">{day}</span>
+                          <span className="text-[10px] tracking-widest uppercase my-1 font-bold">{month}</span>
+                          <span className="text-[9px] opacity-80 tracking-wider mt-1">{year}</span>
                         </div>
-                        <div className="flex-1 flex flex-col justify-between h-full min-w-0">
-                          <div>
-                            <div className="flex items-center justify-between gap-2 mb-1.5">
-                              <span className="inline-block text-red-600 text-[10px] font-bold uppercase tracking-wide bg-red-50 px-2.5 py-1 rounded-full">
-                                {categoryName(notice)}
-                              </span>
-                              <span className="text-[10px] text-gray-400 shrink-0">
-                                {formatFullDateTime(notice.created_at)}
-                              </span>
-                            </div>
-                            <Link to={`/notices/${notice.id}`} className={FOCUS_RING_RED}>
-                              <h3 className="font-bold text-sm text-gray-900 leading-snug line-clamp-2 hover:text-red-600 cursor-pointer transition-colors">
-                                {notice.title}
-                              </h3>
-                            </Link>
-                            {notice.org_unit?.name && (
-                              <p className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 truncate">
-                                <Building2 size={10} className="shrink-0" />
-                                {notice.org_unit.name}
-                              </p>
-                            )}
+
+                        <div className="flex-1 flex p-4 gap-4 items-center min-w-0 -ml-2">
+                          <div className="w-24 h-full rounded-xl overflow-hidden shrink-0">
+                            <NoticeMedia notice={notice} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                           </div>
-                          <div className="flex justify-end">
-                            <Link
-                              to={`/notices/${notice.id}`}
-                              className={`bg-jkuat-red hover:bg-jkuat-blue text-white text-[11px] font-bold px-4 py-2 rounded-full uppercase tracking-wide transition-colors cursor-pointer ${FOCUS_RING_RED}`}
-                            >
-                              Read more
-                            </Link>
+                          <div className="flex-1 flex flex-col justify-between h-full min-w-0">
+                            <div>
+                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <span className="inline-block text-red-600 text-[10px] font-bold uppercase tracking-wide bg-red-50 px-2.5 py-1 rounded-full">
+                                  {categoryName(notice)}
+                                </span>
+                                <span className="text-[10px] text-gray-400 shrink-0">
+                                  {formatFullDateTime(notice.created_at)}
+                                </span>
+                              </div>
+                              <Link to={`/notices/${notice.id}`} className={FOCUS_RING_RED}>
+                                <h3 className="font-bold text-sm text-gray-900 leading-snug line-clamp-2 hover:text-red-600 cursor-pointer transition-colors">
+                                  {notice.title}
+                                </h3>
+                              </Link>
+                              {notice.org_unit?.name && (
+                                <p className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 truncate">
+                                  <Building2 size={10} className="shrink-0" />
+                                  {notice.org_unit.name}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex justify-end">
+                              <Link
+                                to={`/notices/${notice.id}`}
+                                className={`bg-jkuat-red hover:bg-jkuat-blue text-white text-[11px] font-bold px-4 py-2 rounded-full uppercase tracking-wide transition-colors cursor-pointer ${FOCUS_RING_RED}`}
+                              >
+                                Read more
+                              </Link>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
+          </section>
+        )}
+
+        {upcomingEvents.length > 0 && (
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <span className="w-2.5 h-6 bg-jkuat-blue rounded-sm transform skew-x-12 inline-block"></span>
+              <h2 className="text-base font-extrabold tracking-wider text-jkuat-blue uppercase">
+                Upcoming Events
+              </h2>
+            </div>
+
+            <div
+              className="relative"
+              onMouseEnter={() => setEventsAutoScrollPaused(true)}
+              onMouseLeave={() => setEventsAutoScrollPaused(false)}
+              onTouchStart={() => setEventsAutoScrollPaused(true)}
+              onTouchEnd={() => setEventsAutoScrollPaused(false)}
+            >
+              {eventsCanScrollLeft && (
+                <button
+                  onClick={() => scrollEvents(-1)}
+                  aria-label="Scroll left"
+                  className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 items-center justify-center w-9 h-9 rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:text-jkuat-blue hover:border-jkuat-blue/40 transition-colors"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+              )}
+              {eventsCanScrollRight && (
+                <button
+                  onClick={() => scrollEvents(1)}
+                  aria-label="Scroll right"
+                  className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 items-center justify-center w-9 h-9 rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:text-jkuat-blue hover:border-jkuat-blue/40 transition-colors"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              )}
+
+              <div
+                ref={eventsScrollRef}
+                className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory scrollbar-none"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                <style>{`div::-webkit-scrollbar { display: none; }`}</style>
+
+                {upcomingEvents.map((event) => {
+                  const { day, month } = formatEventDateShort(event.start_date);
+                  const pill = audienceStyle(event.audience);
+                  return (
+                    <div
+                      key={event.id}
+                      className="group flex-none w-[300px] bg-jkuat-blue/5 flex flex-col snap-start overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-jkuat-blue/10"
+                    >
+                      <Link to={`/events/${event.id}`} className="relative w-full h-64 overflow-hidden bg-jkuat-blue/10 block">
+                        {event.image_url ? (
+                          <img
+                            src={`${import.meta.env.VITE_API_URL}${event.image_url}`}
+                            alt={event.title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-jkuat-blue/40">
+                            <Calendar size={32} />
+                          </div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-white rounded-lg px-2 py-1 text-center shadow-sm">
+                          <div className="text-sm font-black text-jkuat-blue leading-none">{day}</div>
+                          <div className="text-[9px] font-bold text-jkuat-blue/70 uppercase tracking-wide">{month}</div>
+                        </div>
+                      </Link>
+
+                      <div className="flex-1 flex flex-col p-4 gap-1.5">
+                        <span className={`self-start text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${pill.bg} ${pill.text}`}>
+                          {AUDIENCE_LABELS[event.audience] || event.audience}
+                        </span>
+                        <Link to={`/events/${event.id}`}>
+                          <h3 className="font-bold text-sm text-gray-900 leading-snug line-clamp-2 group-hover:text-jkuat-blue transition-colors">
+                            {event.title}
+                          </h3>
+                        </Link>
+                        {event.location && (
+                          <p className="flex items-center gap-1 text-[11px] text-gray-500 pt-0.5">
+                            <MapPin size={11} className="shrink-0" />
+                            <span className="truncate">{event.location}</span>
+                          </p>
+                        )}
+                        <Link
+                          to={`/events/${event.id}`}
+                          className="mt-auto pt-2 self-start bg-jkuat-blue hover:bg-jkuat-blue/90 text-white text-[11px] font-bold px-4 py-2 rounded-full uppercase tracking-wide transition-colors"
+                        >
+                          View Event
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {hasMoreEvents && (
+                  <Link
+                    to="/events"
+                    className="group flex-none w-[220px] flex flex-col items-center justify-center gap-2 snap-start rounded-2xl border-2 border-dashed border-jkuat-blue/30 bg-jkuat-blue/5 hover:bg-jkuat-blue/10 transition-colors text-jkuat-blue"
+                  >
+                    <ArrowRight size={22} className="transition-transform group-hover:translate-x-1" />
+                    <span className="text-sm font-bold">View All Events</span>
+                  </Link>
+                )}
+              </div>
             </div>
           </section>
         )}
@@ -315,7 +484,7 @@ export default function AsymmetricNoticeboard() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
-              {rest.map((notice) => {
+              {visibleNotices.map((notice) => {
                 const pill = audienceStyle(notice.audience);
                 const excerpt = stripHtml(notice.body);
 
@@ -371,6 +540,17 @@ export default function AsymmetricNoticeboard() {
                 );
               })}
             </div>
+
+            {visibleNoticesCount < rest.length && (
+              <div className="flex justify-center pt-2">
+                <button
+                  onClick={() => setVisibleNoticesCount((v) => v + NOTICES_PAGE_SIZE)}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold px-6 py-2.5 rounded-full transition-colors"
+                >
+                  Load more
+                </button>
+              </div>
+            )}
           </div>
 
           {rest.length === 0 && pinned.length === 0 && (

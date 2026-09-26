@@ -9,6 +9,7 @@ from app.models.org_unit import OrgUnit
 from app.models.audit_log import AuditLog
 from app.models.institutional_domain import InstitutionalDomain
 from app.models.notification import Notification
+from app.models.event import Event
 
 __all__ = [
     "Role",
@@ -22,4 +23,5 @@ __all__ = [
     "AuditLog",
     "InstitutionalDomain",
     "Notification",
+    "Event",
 ]

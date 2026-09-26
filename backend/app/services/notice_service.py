@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
+from fastapi import HTTPException, BackgroundTasks
 from datetime import datetime, timezone
 
 from app.repositories.notice_repository import NoticeRepository
@@ -65,14 +65,15 @@ class NoticeService:
             data.is_locked = False
             return data
 
-        allowed = self.audience_allows(notice.audience, viewer_audience)
+        is_admin_viewer = current_user is not None and current_user.role.name in ADMIN_ROLES
+        allowed = is_admin_viewer or self.audience_allows(notice.audience, viewer_audience)
         data = NoticeRead.model_validate(notice)
         data.is_locked = not allowed
         if not allowed:
             data.body = None
         return data
 
-    async def create(self, data: NoticeCreate, current_user: User) -> Notice:
+    async def create(self, data: NoticeCreate, current_user: User, background_tasks: BackgroundTasks) -> Notice:
         await self._check_post_scope(data, current_user)
         status = await self._resolve_status(current_user)
 
@@ -89,7 +90,7 @@ class NoticeService:
             details=f"status: {status.value}",
         )
         if status == NoticeStatus.PENDING:
-            await self.notification_service.notify_pending_review(reloaded)
+            await self.notification_service.notify_pending_review(reloaded, background_tasks)
         return reloaded
 
     async def list_pending(self, current_user: User, limit: int, offset: int) -> list[Notice]:
@@ -128,7 +129,7 @@ class NoticeService:
                 count += 1
         return count
 
-    async def approve(self, notice_id: int, current_user: User) -> Notice:
+    async def approve(self, notice_id: int, current_user: User, background_tasks: BackgroundTasks) -> Notice:
         notice = await self.notice_repo.get_by_id(notice_id)
         if not notice:
             raise HTTPException(404, "Notice not found")
@@ -148,10 +149,10 @@ class NoticeService:
         await self.audit_log_service.log(
             current_user, "notice.approve", "notice", reloaded.id, reloaded.title,
         )
-        await self.notification_service.notify_approved(reloaded)
+        await self.notification_service.notify_approved(reloaded, background_tasks)
         return reloaded
 
-    async def reject(self, notice_id: int, rejection_notes: str, current_user: User) -> Notice:
+    async def reject(self, notice_id: int, rejection_notes: str, current_user: User, background_tasks: BackgroundTasks) -> Notice:
         notice = await self.notice_repo.get_by_id(notice_id)
         if not notice:
             raise HTTPException(404, "Notice not found")
@@ -172,7 +173,7 @@ class NoticeService:
         await self.audit_log_service.log(
             current_user, "notice.reject", "notice", reloaded.id, reloaded.title,
         )
-        await self.notification_service.notify_rejected(reloaded)
+        await self.notification_service.notify_rejected(reloaded, background_tasks)
         return reloaded
 
     async def pin_site(self, notice_id: int, current_user: User) -> Notice:

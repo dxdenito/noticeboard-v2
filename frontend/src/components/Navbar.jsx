@@ -6,9 +6,9 @@ import { useAuth } from '../context/AuthContext';
 
 const MENU_ITEMS = [
   { label: 'Sections', to: '/browse/sections' },
+  { label: 'Events', to: '/events' },
   { label: 'Staff', to: '/browse/staff' },
   { label: 'Students', to: '/browse/students' },
-  { label: 'Events', to: '/browse/events' },
   { label: 'Categories', to: '/browse/categories' },
 ];
 

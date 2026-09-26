@@ -29,11 +29,19 @@ import Activate from "./pages/Activate";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ChangePassword from "./pages/admin/ChangePassword";
+import PostEvent from "./pages/admin/PostEvent";
+import MyEvents from "./pages/admin/MyEvents";
+import EditEvent from "./pages/admin/EditEvent";
+import AdminEventDetail from "./pages/admin/AdminEventDetail";
+import EventDetail from "./pages/EventDetail";
+import AllEvents from "./pages/AllEvents";
+import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
   return (
     <AuthProvider>
      <ToastProvider>
+      <ScrollToTop />
       <Routes>
         <Route path="/login" element={<AsymmetricLoginPage />} />
         <Route path="/activate" element={<Activate />} />
@@ -43,11 +51,17 @@ function App() {
           <Route path="/" element={<AsymmetricNoticeboard />} />          
           <Route path="/notices/:id" element={<NoticeDetail />} />
           <Route path="/browse/:kind" element={<BrowseNotices />} />
+          <Route path="/events" element={<AllEvents />} />
+          <Route path="/events/:id" element={<EventDetail />} />
         </Route>
         
         <Route element={<AdminRoute><AdminLayout/></AdminRoute>}>
           <Route path="/dashboard" element={<Dashboard/>}/>
           <Route path="/dashboard/post" element={<PostNotice/>}/>
+          <Route path="/dashboard/post-event" element={<PostEvent/>}/>
+          <Route path="/dashboard/my-events" element={<MyEvents/>}/>
+          <Route path="/dashboard/edit-event/:id" element={<EditEvent/>}/>
+          <Route path="/dashboard/events/:id" element={<AdminEventDetail/>}/>
           <Route path="/dashboard/my-notices" element={<MyNotices/>}/>
           <Route path="/dashboard/notices/:id" element={<AdminNoticeDetail/>}/>
           <Route path="/dashboard/all-notices" element={

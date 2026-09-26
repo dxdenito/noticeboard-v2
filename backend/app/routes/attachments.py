@@ -53,10 +53,15 @@ async def download_attachment(
     if not allowed:
         raise HTTPException(404, "Attachment not found")
 
+    content_type = attachment.content_type or ""
+    inline_types = ("application/pdf",)
+    disposition = "inline" if content_type in inline_types or content_type.startswith("image/") else "attachment"
+
     return FileResponse(
         path=attachment.file_url,
         filename=attachment.file_name,
         media_type=attachment.content_type,
+        content_disposition_type=disposition,
     )
 
 
