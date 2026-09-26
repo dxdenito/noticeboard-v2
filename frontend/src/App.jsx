@@ -26,6 +26,9 @@ import { canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUn
 import ManageInstitutionalDomains from "./pages/admin/ManageInstitutionalDomains";
 import AdminNoticeDetail from "./pages/admin/AdminNoticeDetail";
 import Activate from "./pages/Activate";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import ChangePassword from "./pages/admin/ChangePassword";
 
 function App() {
   return (
@@ -34,6 +37,8 @@ function App() {
       <Routes>
         <Route path="/login" element={<AsymmetricLoginPage />} />
         <Route path="/activate" element={<Activate />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route element={<MainLayout/>}>
           <Route path="/" element={<AsymmetricNoticeboard />} />          
           <Route path="/notices/:id" element={<NoticeDetail />} />
@@ -75,6 +80,7 @@ function App() {
             <RequireCapability require={canViewAuditLog}><AuditLogViewer/></RequireCapability>
           }/>
           <Route path="/dashboard/edit-notice/:id" element={<EditNotice/>}/>
+          <Route path="/dashboard/change-password" element={<ChangePassword/>}/>
 
         </Route>
       </Routes>

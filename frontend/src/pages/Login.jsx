@@ -20,8 +20,8 @@ export default function AsymmetricLoginPage() {
     setSubmitting(true);
     try {
       setLoading(true);
-      await login(username, password);
-      navigate('/dashboard');
+      const loggedInUser = await login(username, password);
+      navigate(loggedInUser?.must_change_password ? '/dashboard/change-password' : '/dashboard');
     } catch (err) {
       setLoading(false);
       showError(err.message)
@@ -82,7 +82,9 @@ export default function AsymmetricLoginPage() {
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
                   Password
                 </label>
-                
+                <Link to="/forgot-password" className="text-xs font-semibold text-jkuat-blue hover:underline">
+                  Forgot password?
+                </Link>
               </div>
               <input 
                 type="password" 

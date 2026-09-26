@@ -23,6 +23,7 @@ export default function BrowseNotices() {
   const { kind } = useParams();
   const isSections = kind === "sections";
   const isCategories = kind === "categories";
+  const isEvents = kind === "events";
   const audienceConfig = AUDIENCE_KINDS[kind];
 
   const [allNotices, setAllNotices] = useState([]);
@@ -59,7 +60,8 @@ export default function BrowseNotices() {
     load();
   }
 
-  const label = audienceConfig?.label || (isCategories ? "Categories" : isSections ? "Sections" : "Not found");
+  const label = audienceConfig?.label
+    || (isCategories ? "Categories" : isSections ? "Sections" : isEvents ? "Events" : "Not found");
 
   let filtered;
   if (audienceConfig) {
@@ -75,6 +77,8 @@ export default function BrowseNotices() {
       if (!n.org_unit_id) return false;
       return selectedId ? n.org_unit_id === Number(selectedId) : true;
     });
+  } else if (isEvents) {
+    filtered = allNotices.filter((n) => n.category?.name?.toLowerCase() === "events");
   } else {
     filtered = [];
   }
@@ -113,6 +117,10 @@ export default function BrowseNotices() {
             <option key={o.id} value={o.id}>{o.name}</option>
           ))}
         </select>
+      )}
+
+      {isEvents && filtered.length === 0 && (
+        <p className="text-sm text-gray-400 mb-6">No events posted yet.</p>
       )}
 
       <NoticeGrid notices={filtered} onLockedClick={() => setShowVerifyModal(true)} />

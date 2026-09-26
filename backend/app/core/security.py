@@ -51,3 +51,11 @@ def create_activation_token(user_id: int, expire_days: int = 7) -> str:
         "exp": datetime.now(timezone.utc) + timedelta(days=expire_days),
     }
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+
+def create_password_reset_token(user_id: int, expire_hours: int = 24) -> str:
+    to_encode = {
+        "sub": str(user_id),
+        "type": "password_reset",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=expire_hours),
+    }
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)

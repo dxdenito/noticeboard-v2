@@ -11,8 +11,10 @@ export function AuthProvider({ children }) {
     try {
       const data = await api.get("/users/me");
       setUser(data);
+      return data;
     } catch {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -39,7 +41,7 @@ export function AuthProvider({ children }) {
       throw new Error(err.detail || "Login failed");
     }
 
-    await loadCurrentUser();
+    return await loadCurrentUser();
   }
 
   async function logout() {
@@ -48,7 +50,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser: loadCurrentUser }}>
       {children}
     </AuthContext.Provider>
   );

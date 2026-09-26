@@ -24,6 +24,7 @@ class User(Base):
     role_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("roles.id"), nullable=False
     )
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=True)
     requires_approval: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     can_approve: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     can_post: Mapped[bool | None] = mapped_column(Boolean, nullable=True)

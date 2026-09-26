@@ -1,8 +1,8 @@
 import AdminNavbar from "../components/admin/AdminNavbar";
-import { Menu, X, LayoutDashboard, PlusCircle, FileText, CheckSquare, Users, Tags, Pin, LogOut, Network, Building2, ScrollText, LayoutList, Mail } from "lucide-react";
+import { Menu, X, LayoutDashboard, PlusCircle, FileText, CheckSquare, Users, Tags, Pin, LogOut, Network, Building2, ScrollText, LayoutList, Mail, KeyRound } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useState, useEffect, useCallback } from "react";
-import { useLocation, Link, Outlet } from "react-router-dom";
+import { useLocation, useNavigate, Link, Outlet } from "react-router-dom";
 import { isAdmin, canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits, isCorporateSuperAdmin, canViewAuditLog, canViewAllNotices, canManageInstitutionalDomains } from "../lib/permissions";
 import { api } from "../api/client";
 
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { to: "/dashboard/org-units", label: "Org Units", icon: Network, show: canManageOrgUnits },
   { to: "/dashboard/institutional-domains", label: "Institutional Domains", icon: Mail, show: canManageInstitutionalDomains },
   { to: "/dashboard/audit-log", label: "Audit Log", icon: ScrollText, show: canViewAuditLog },
+{ to: "/dashboard/change-password", label: "Change Password", icon: KeyRound, show: isAdmin },
 ];
 
 export const PENDING_COUNT_CHANGED_EVENT = "pending-count-changed";
@@ -28,6 +29,7 @@ export default function AdminLayout(){
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
     const location = useLocation();
+    const navigate = useNavigate();
 
     const visibleItems = NAV_ITEMS.filter((item) => item.show(user));
 
@@ -37,6 +39,12 @@ export default function AdminLayout(){
             .then((data) => setPendingCount(data.count))
             .catch(() => {});
     }, [user]);
+
+    useEffect(() => {
+        if (user?.must_change_password && location.pathname !== "/dashboard/change-password") {
+            navigate("/dashboard/change-password", { replace: true });
+        }
+    }, [user, location.pathname, navigate]);
 
     useEffect(() => {
         refetchPendingCount();

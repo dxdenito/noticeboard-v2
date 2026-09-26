@@ -37,3 +37,13 @@ class EmailService:
             f"If you weren't expecting this, you can ignore this email."
         )
         await self.send(to, "Activate your Noticeboard account", body)
+
+    async def send_password_reset_email(self, to: str, full_name: str, reset_link: str) -> None:
+        body = (
+            f"Hi {full_name},\n\n"
+            f"We received a request to reset your Noticeboard password.\n"
+            f"This link is valid for 24 hours:\n\n"
+            f"{reset_link}\n\n"
+            f"If you didn't request this, you can safely ignore this email."
+        )
+        await self.send(to, "Reset your Noticeboard password", body)

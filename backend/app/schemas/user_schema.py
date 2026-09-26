@@ -24,6 +24,7 @@ class UserRead(BaseModel):
     org_unit: UserOrgUnitRead
     role: RoleRead
     is_active: bool
+    must_change_password: bool
     can_approve: bool | None
     can_post: bool | None
     can_manage_users: bool | None
@@ -36,6 +37,20 @@ class UserRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 class Token(BaseModel):
