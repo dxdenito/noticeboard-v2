@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, Response, BackgroundTasks
+from fastapi import APIRouter, Depends, Response, BackgroundTasks, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
@@ -12,10 +14,13 @@ from app.schemas.user_schema import ForgotPasswordRequest, ResetPasswordRequest,
 from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/login")
+@limiter.limit("5/minute")
 async def login(
+    request: Request,
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
@@ -44,7 +49,9 @@ async def logout(response: Response):
 
 
 @router.post("/forgot-password")
+@limiter.limit("3/minute")
 async def forgot_password(
+    request: Request,
     data: ForgotPasswordRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),

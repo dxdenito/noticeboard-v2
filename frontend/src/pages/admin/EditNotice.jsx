@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronDown, Paperclip, X } from "lucide-react";
+import { ChevronDown, Paperclip, X, Trash2 } from "lucide-react";
 import { api } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
@@ -145,6 +145,15 @@ export default function EditNotice() {
       setSubmitting(false);
     }
   }
+  async function handleRemoveAttachment(attachmentId) {
+    if (!confirm("Remove this attachment?")) return;
+    try {
+      await api.delete(`/notices/${id}/attachments/${attachmentId}`);
+      setExistingAttachments((prev) => prev.filter((att) => att.id !== attachmentId));
+    } catch (err) {
+      showError(err.message);
+    }
+  }
 
   if (!form) return <div className="p-8 text-center text-gray-400">Loading...</div>;
 
@@ -246,11 +255,18 @@ export default function EditNotice() {
               <div className="flex items-start gap-2">
                 <label className="text-xs font-medium text-gray-500 w-24 shrink-0 pt-1.5">Attachments</label>
                 <div className="flex-1">
-                  {existingAttachments.length > 0 && (
+                {existingAttachments.length > 0 && (
                     <ul className="space-y-1 mb-2">
                       {existingAttachments.map((att) => (
-                        <li key={att.id} className="text-xs text-gray-500">
-                          {att.file_name} <span className="text-gray-300">(already attached)</span>
+                        <li key={att.id} className="flex items-center gap-2 text-xs text-gray-500">
+                          <span className="flex-1 truncate">{att.file_name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAttachment(att.id)}
+                            className="text-gray-300 hover:text-red-500 shrink-0"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         </li>
                       ))}
                     </ul>

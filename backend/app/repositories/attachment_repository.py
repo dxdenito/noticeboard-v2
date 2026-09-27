@@ -27,3 +27,7 @@ class AttachmentRepository:
         statement = select(Attachment).where(Attachment.notice_id == notice_id)
         result = await self.db.execute(statement)
         return list(result.scalars().all())
+    
+    async def delete(self, attachment: Attachment) -> None:
+        await self.db.delete(attachment)
+        await self.db.commit()

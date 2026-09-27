@@ -88,3 +88,13 @@ async def get_attachment_thumbnail(
         raise HTTPException(404, "No thumbnail available for this attachment")
 
     return FileResponse(path=thumb_path, media_type="image/png")
+
+@router.delete("/{attachment_id}", status_code=204)
+async def delete_attachment(
+    notice_id: int,
+    attachment_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = AttachmentService(db)
+    await service.delete(attachment_id, current_user)

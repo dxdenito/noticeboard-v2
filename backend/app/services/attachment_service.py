@@ -61,3 +61,20 @@ class AttachmentService:
             return None
 
         return thumb_path
+    
+    async def delete(self, attachment_id: int, current_user: User) -> None:
+        attachment = await self.attachment_repo.get_by_id(attachment_id)
+        if not attachment:
+            raise HTTPException(404, "Attachment not found")
+
+        notice = await self.notice_repo.get_by_id(attachment.notice_id)
+        if not notice:
+            raise HTTPException(404, "Notice not found")
+
+        if current_user.role.name != "super_admin" and notice.author_id != current_user.id:
+            raise HTTPException(403, "Only the notice's author or a super_admin can remove attachments")
+
+        if os.path.exists(attachment.file_url):
+            os.remove(attachment.file_url)
+
+        await self.attachment_repo.delete(attachment)
