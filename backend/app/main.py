@@ -27,7 +27,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173","https://59c8-41-204-187-5.ngrok-free.app","http://10.96.176.30:5173","http://192.168.137.1:5173","http://192.168.0.103:5173","http://192.168.100.75:5173"],
+    allow_origins=["http://localhost:5173","https://59c8-41-204-187-5.ngrok-free.app","http://10.96.176.24:5173","http://192.168.137.1:5173","http://192.168.0.103:5173","http://192.168.100.75:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
