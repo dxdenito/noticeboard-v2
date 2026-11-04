@@ -7,6 +7,7 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.role_repository import RoleRepository
 from app.services.institutional_domain_service import InstitutionalDomainService
 from app.services.email_service import EmailService
+from app.services.audit_log_service import AuditLogService, snapshot, format_changes
 from app.core.security import hash_password, create_activation_token, decode_access_token
 from app.models.user import User
 from app.schemas.user_schema import UserCreateByAdmin, UserUpdate
@@ -17,6 +18,14 @@ CAPABILITY_FIELDS = (
     "can_manage_tags", "can_manage_org_units", "can_pin",
     "can_assign_post_scope", "can_assign_approve_scope", "can_delete_notice",
 )
+USER_AUDIT_FIELDS = ("full_name", "pf_number", "requires_approval", *CAPABILITY_FIELDS, "is_active")
+
+
+def _user_snapshot(user: User) -> dict:
+    data = snapshot(user, USER_AUDIT_FIELDS)
+    data["role"] = user.role.name
+    data["org_unit"] = user.org_unit.name
+    return data
 
 
 class UserAdminService:
@@ -26,6 +35,7 @@ class UserAdminService:
         self.role_repo = RoleRepository(db)
         self.institutional_domain_service = InstitutionalDomainService(db)
         self.email_service = EmailService()
+        self.audit_log_service = AuditLogService(db)
 
     def _has_manage_users_right(self, current_user: User) -> bool:
         if current_user.role.name == "super_admin":
@@ -95,6 +105,11 @@ class UserAdminService:
 
         self._queue_activation_email(reloaded, background_tasks)
 
+        await self.audit_log_service.log(
+            current_user, "user.create", "user", reloaded.id, reloaded.email,
+            details=f"name: {reloaded.full_name}; role: {reloaded.role.name}; org_unit: {reloaded.org_unit.name}; pf: {reloaded.pf_number}",
+        )
+
         return reloaded
 
     async def activate_account(self, token: str) -> User:
@@ -115,7 +130,13 @@ class UserAdminService:
 
         user.is_active = True
         user.activated_at = datetime.now(timezone.utc)
-        return await self.user_repo.update(user)
+        updated = await self.user_repo.update(user)
+
+        await self.audit_log_service.log(
+            updated, "user.activate", "user", updated.id, updated.email,
+            details="activated through email link",
+        )
+        return updated
 
     async def resend_activation(
         self, user_id: int, current_user: User, background_tasks: BackgroundTasks
@@ -131,6 +152,10 @@ class UserAdminService:
             raise HTTPException(400, "This account has already been activated")
 
         self._queue_activation_email(user, background_tasks)
+
+        await self.audit_log_service.log(
+            current_user, "user.resend_activation", "user", user.id, user.email,
+        )
 
     async def update_user(self, user_id: int, data: UserUpdate, current_user: User) -> User:
         if not self._has_manage_users_right(current_user):
@@ -160,6 +185,8 @@ class UserAdminService:
                 if field in payload:
                     raise HTTPException(403, "Only super_admin can change capability flags")
 
+        before = _user_snapshot(user)
+
         for field, value in payload.items():
             setattr(user, field, value)
 
@@ -170,6 +197,17 @@ class UserAdminService:
         reloaded = await self.user_repo.get_by_id(updated.id)
         if reloaded is None:
             raise HTTPException(500, "User update failed unexpectedly")
+
+        after = _user_snapshot(reloaded)
+        details = format_changes(before, after)
+        if details:
+            action = "user.update"
+            if before["is_active"] != after["is_active"]:
+                action = "user.reactivate" if after["is_active"] else "user.deactivate"
+            await self.audit_log_service.log(
+                current_user, action, "user", reloaded.id, reloaded.email, details=details,
+            )
+
         return reloaded
 
     async def list_users(self, current_user: User, limit: int, offset: int, search: str | None = None) -> list[User]:

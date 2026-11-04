@@ -39,6 +39,9 @@ class AdminScopeService:
             allowed = role_name == "super_admin" or self.permission_service.has_right(performed_by, "can_assign_approve_scope")
             if not allowed:
                 raise HTTPException(403, "You don't have permission to grant approve scopes")
+    async def _admin_name(self, admin_id: int) -> str:
+        user = await self.user_repo.get_by_id(admin_id)
+        return user.full_name if user else f"user #{admin_id}"
 
     async def grant_scope(
         self, admin_id: int, org_unit_id: int, scope_type: ScopeType, performed_by: User
@@ -63,7 +66,7 @@ class AdminScopeService:
 
         await self.audit_log_service.log(
             performed_by, f"scope.grant.{scope_type.value}", "org_unit", org_unit.id, org_unit.name,
-            details=f"granted to admin_id={admin_id}",
+            details=f"granted to {await self._admin_name(admin_id)}",
         )
         return created
 
@@ -83,7 +86,7 @@ class AdminScopeService:
 
         await self.audit_log_service.log(
             performed_by, f"scope.revoke.{scope_type.value}", "org_unit", org_unit_id, org_unit_name,
-            details=f"revoked from admin_id={admin_id}",
+            details=f"revoked from {await self._admin_name(admin_id)}",
         )
 
     async def get_scope_summary(self, admin_id: int) -> dict:

@@ -22,3 +22,8 @@ class AuditLogRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+class AuditLogMeta(BaseModel):
+    actions: list[str]
+    target_types: list[str]
+    actors: list[AuditLogActorRead]

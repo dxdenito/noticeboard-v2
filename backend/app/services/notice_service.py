@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from app.repositories.notice_repository import NoticeRepository
 from app.services.permission_service import PermissionService
-from app.services.audit_log_service import AuditLogService
+from app.services.audit_log_service import AuditLogService, snapshot, format_changes
 from app.models.notice import NoticeStatus, Notice, Audience
 from app.schemas.notice_schema import NoticeCreate, NoticeRead, NoticeUpdate
 from app.services.notification_service import NotificationService
@@ -13,6 +13,7 @@ from app.models.user import User
 
 ADMIN_ROLES = ("super_admin", "ict_sub_admin", "corporate_super_admin", "corporate_admin", "web_admin")
 AUTO_PUBLISH_ROLES = ("super_admin", "corporate_super_admin", "corporate_admin")
+NOTICE_AUDIT_FIELDS = ("title", "body", "category_id", "audience", "org_unit_id", "expiry_date", "status")
 
 
 class NoticeService:
@@ -171,7 +172,7 @@ class NoticeService:
             raise HTTPException(500, "Notice update failed unexpectedly")
 
         await self.audit_log_service.log(
-            current_user, "notice.reject", "notice", reloaded.id, reloaded.title,
+            current_user, "notice.reject", "notice", reloaded.id, reloaded.title, details=f"expires: {expiry_date.isoformat(timespec='minutes')}" if expiry_date else "no expiry",
         )
         await self.notification_service.notify_rejected(reloaded, background_tasks)
         return reloaded
@@ -320,6 +321,8 @@ class NoticeService:
         if current_user.role.name != "super_admin" and notice.author_id != current_user.id:
             raise HTTPException(403, "Only the author or a super_admin can edit this notice")
 
+        before = snapshot(notice, NOTICE_AUDIT_FIELDS)
+
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(notice, field, value)
 
@@ -333,6 +336,7 @@ class NoticeService:
 
         await self.audit_log_service.log(
             current_user, "notice.update", "notice", reloaded.id, reloaded.title,
+            details=format_changes(before, snapshot(reloaded, NOTICE_AUDIT_FIELDS), hidden=("body",)),
         )
         return reloaded
 
@@ -345,10 +349,12 @@ class NoticeService:
 
         title = notice.title
         notice_id_for_log = notice.id
+        status_value = notice.status.value
         await self.notice_repo.delete(notice)
 
         await self.audit_log_service.log(
             current_user, "notice.delete", "notice", notice_id_for_log, title,
+            details=f"status was {status_value}",
         )
 
     async def list_my_notices(

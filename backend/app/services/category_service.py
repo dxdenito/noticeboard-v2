@@ -9,6 +9,7 @@ from app.services.permission_service import PermissionService
 from app.models.category import Category
 from app.models.user import User
 from app.schemas.category_schema import CategoryCreate
+from app.services.audit_log_service import AuditLogService
 
 TAG_MANAGE_ROLES = ("super_admin", "web_admin")
 
@@ -19,6 +20,7 @@ class CategoryService:
         self.category_repo = CategoryRepository(db)
         self.notice_repo = NoticeRepository(db)
         self.permission_service = PermissionService(db)
+        self.audit_log_service = AuditLogService(db)
 
     def _check_manage_permission(self, current_user: User) -> None:
         if current_user.role.name in TAG_MANAGE_ROLES:
@@ -31,9 +33,14 @@ class CategoryService:
         self._check_manage_permission(current_user)
         new_category = Category(**data.model_dump())
         try:
-            return await self.category_repo.create(new_category)
+            created = await self.category_repo.create(new_category)
         except IntegrityError:
             raise HTTPException(400, "A category with this name already exists")
+
+        await self.audit_log_service.log(
+            current_user, "category.create", "category", created.id, created.name,
+        )
+        return created
 
     async def list_all(self) -> list[Category]:
         return await self.category_repo.list_all()
@@ -56,6 +63,20 @@ class CategoryService:
         if from_id == to_id:
             raise HTTPException(400, "Source and target cannot be the same")
 
+        from_name = from_category.name
+        to_name = to_category.name
+
+        notices = await self.notice_repo.list_by_category_id(from_id)
+        for notice in notices:
+            notice.category_id = to_id
+            await self.notice_repo.update(notice)
+
+        await self.audit_log_service.log(
+            current_user, "category.reassign", "category", from_id, from_name,
+            details=f"moved {len(notices)} notices to {to_name}",
+        )
+        return {"notices_moved": len(notices)}
+
         notices = await self.notice_repo.list_by_category_id(from_id)
         for notice in notices:
             notice.category_id = to_id
@@ -73,4 +94,10 @@ class CategoryService:
         notices = await self.notice_repo.list_by_category_id(category_id)
         if notices:
             raise HTTPException(400, "Cant delete a category with existing notices. Reassign notices then delete.")
+
+        name = category.name
         await self.category_repo.delete(category)
+
+        await self.audit_log_service.log(
+            current_user, "category.delete", "category", category_id, name,
+        )

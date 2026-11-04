@@ -8,6 +8,7 @@ from app.models.attachment import Attachment
 from app.models.user import User
 from app.core.file_storage import save_upload_file
 from app.core.config import settings
+from app.services.audit_log_service import AuditLogService
 
 import fitz  # type: ignore[import-untyped]
 
@@ -17,6 +18,7 @@ class AttachmentService:
         self.db = db
         self.attachment_repo = AttachmentRepository(db)
         self.notice_repo = NoticeRepository(db)
+        self.audit_log_service = AuditLogService(db)
 
     async def upload(self, notice_id: int, file: UploadFile, current_user: User) -> Attachment:
         notice = await self.notice_repo.get_by_id(notice_id)
@@ -26,6 +28,7 @@ class AttachmentService:
         if current_user.role.name != "super_admin" and notice.author_id != current_user.id:
             raise HTTPException(403, "Only the notice's author or a super_admin can add attachments")
 
+        notice_title = notice.title
         file_path, file_size = await save_upload_file(file, subfolder=f"notices/{notice_id}")
 
         new_attachment = Attachment(
@@ -35,7 +38,13 @@ class AttachmentService:
             file_size=file_size,
             content_type=file.content_type,
         )
-        return await self.attachment_repo.create(new_attachment)
+        created = await self.attachment_repo.create(new_attachment)
+
+        await self.audit_log_service.log(
+            current_user, "attachment.upload", "attachment", created.id, created.file_name,
+            details=f"notice: {notice_title} (#{notice_id}); {file_size} bytes",
+        )
+        return created
 
     async def list_for_notice(self, notice_id: int) -> list[Attachment]:
         return await self.attachment_repo.get_by_notice_id(notice_id)
@@ -74,7 +83,17 @@ class AttachmentService:
         if current_user.role.name != "super_admin" and notice.author_id != current_user.id:
             raise HTTPException(403, "Only the notice's author or a super_admin can remove attachments")
 
+        file_name = attachment.file_name
+        attachment_id_for_log = attachment.id
+        notice_title = notice.title
+        notice_id_for_log = notice.id
+
         if os.path.exists(attachment.file_url):
             os.remove(attachment.file_url)
 
         await self.attachment_repo.delete(attachment)
+
+        await self.audit_log_service.log(
+            current_user, "attachment.delete", "attachment", attachment_id_for_log, file_name,
+            details=f"notice: {notice_title} (#{notice_id_for_log})",
+        )

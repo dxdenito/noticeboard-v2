@@ -3,7 +3,7 @@ from sqlalchemy import select, func, update, delete as sql_delete
 from fastapi import HTTPException
 
 from app.repositories.org_unit_repository import OrgUnitRepository
-from app.services.audit_log_service import AuditLogService
+from app.services.audit_log_service import AuditLogService, snapshot, format_changes
 from app.services.permission_service import PermissionService
 from app.models.org_unit import OrgUnit
 from app.models.user import User
@@ -14,6 +14,8 @@ from app.schemas.org_unit_schema import (
     OrgUnitCreate, OrgUnitUpdate, OrgUnitRead, OrgUnitTreeNode, OrgUnitUsage,
 )
 
+
+ORG_UNIT_AUDIT_FIELDS = ("name", "type", "parent_id", "head_title", "head_name")
 
 class OrgUnitService:
     def __init__(self, db: AsyncSession):
@@ -57,6 +59,7 @@ class OrgUnitService:
                 raise HTTPException(404, "Parent org unit not found")
             if await self._creates_cycle(org_unit.id, new_parent):
                 raise HTTPException(400, "This change would create a circular org structure")
+        before = snapshot(org_unit, ORG_UNIT_AUDIT_FIELDS)
 
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(org_unit, field, value)
@@ -65,6 +68,7 @@ class OrgUnitService:
 
         await self.audit_log_service.log(
             current_user, "org_unit.update", "org_unit", org_unit.id, org_unit.name,
+            details=format_changes(before, snapshot(org_unit, ORG_UNIT_AUDIT_FIELDS)),
         )
         return org_unit
 

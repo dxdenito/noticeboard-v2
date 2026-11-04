@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from app.repositories.event_repository import EventRepository
 from app.services.permission_service import PermissionService
-from app.services.audit_log_service import AuditLogService
+from app.services.audit_log_service import AuditLogService, snapshot, format_changes
 from app.services.notification_service import NotificationService
 from app.models.event import Event
 from app.models.notice import NoticeStatus
@@ -15,6 +15,7 @@ from app.core.file_storage import save_upload_file, IMAGE_EXTENSIONS
 
 ADMIN_ROLES = ("super_admin", "ict_sub_admin", "corporate_super_admin", "corporate_admin", "web_admin")
 AUTO_PUBLISH_ROLES = ("super_admin", "corporate_super_admin")
+EVENT_AUDIT_FIELDS = ("title", "description", "start_date", "end_date", "location", "audience", "org_unit_id", "status")
 
 
 class EventService:
@@ -125,7 +126,10 @@ class EventService:
         await self.event_repo.update(event)
 
         reloaded = await self.event_repo.get_by_id(event_id)
-        await self.audit_log_service.log(current_user, "event.reject", "event", reloaded.id, reloaded.title)
+        await self.audit_log_service.log(
+            current_user, "event.reject", "event", reloaded.id, reloaded.title,
+            details=f"reason: {rejection_notes}",
+        )
         await self.notification_service.notify_event_rejected(reloaded, background_tasks)
         return reloaded
 
@@ -149,6 +153,8 @@ class EventService:
         if current_user.role.name != "super_admin" and event.author_id != current_user.id:
             raise HTTPException(403, "Only the author or a super_admin can edit this event")
 
+        before = snapshot(event, EVENT_AUDIT_FIELDS)
+
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(event, field, value)
 
@@ -157,9 +163,12 @@ class EventService:
         await self.event_repo.update(event)
 
         reloaded = await self.event_repo.get_by_id(event_id)
-        await self.audit_log_service.log(current_user, "event.update", "event", reloaded.id, reloaded.title)
+        await self.audit_log_service.log(
+            current_user, "event.update", "event", reloaded.id, reloaded.title,
+            details=format_changes(before, snapshot(reloaded, EVENT_AUDIT_FIELDS), hidden=("description",)),
+        )
         return reloaded
-
+    
     async def set_image(self, event_id: int, image_url: str, image_file_name: str, current_user: User) -> Event:
         event = await self.event_repo.get_by_id(event_id)
         if not event:
@@ -178,11 +187,19 @@ class EventService:
         if current_user.role.name != "super_admin" and event.author_id != current_user.id:
             raise HTTPException(403, "Only the event's author or a super_admin can update its image")
 
-        file_path, _ = await save_upload_file(file, subfolder=f"events/{event_id}", allowed_extensions=IMAGE_EXTENSIONS)
+        file_path, _ = await save_upload_file(
+            file, subfolder=f"events/{event_id}", allowed_extensions=IMAGE_EXTENSIONS
+        )
 
         event.image_url = file_path
         event.image_file_name = file.filename or "unnamed"
-        return await self.event_repo.update(event)
+        updated = await self.event_repo.update(event)
+
+        await self.audit_log_service.log(
+            current_user, "event.image_update", "event", updated.id, updated.title,
+            details=f"file: {updated.image_file_name}",
+        )
+        return updated
 
     async def delete(self, event_id: int, current_user: User) -> None:
         event = await self.event_repo.get_by_id(event_id)
@@ -193,8 +210,12 @@ class EventService:
 
         title = event.title
         event_id_for_log = event.id
+        status_value = event.status.value
         await self.event_repo.delete(event)
-        await self.audit_log_service.log(current_user, "event.delete", "event", event_id_for_log, title)
+        await self.audit_log_service.log(
+            current_user, "event.delete", "event", event_id_for_log, title,
+            details=f"status was {status_value}",
+        )
 
     async def count_my_events(self, current_user: User) -> dict[str, int]:
         return await self.event_repo.count_by_author(current_user.id)
