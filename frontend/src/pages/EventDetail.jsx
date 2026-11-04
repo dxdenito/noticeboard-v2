@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, MapPin, Calendar, Building2 } from "lucide-react";
 import { api } from "../api/client";
 import { AUDIENCE_LABELS, audienceStyle } from "../lib/audience";
+	import { sanitizeHtml } from "../lib/sanitize";
 
 function formatFullDateTime(isoString) {
   const d = new Date(isoString);
@@ -85,7 +86,7 @@ export default function EventDetail() {
 
         <div
           className="prose prose-neutral max-w-none text-gray-800"
-          dangerouslySetInnerHTML={{ __html: event.description }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(event.description) }}
         />
       </div>
     </div>

@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_db
 from app.services.org_unit_service import OrgUnitService
-from app.schemas.org_unit_schema import OrgUnitCreate, OrgUnitUpdate, OrgUnitRead, OrgUnitTreeNode
+from app.schemas.org_unit_schema import OrgUnitCreate, OrgUnitUpdate, OrgUnitRead, OrgUnitTreeNode, OrgUnitUsage
 from app.models.user import User
 
 router = APIRouter(prefix="/org-units", tags=["org-units"])
@@ -54,11 +54,22 @@ async def update_org_unit(
     return await service.update(org_unit_id, data, current_user)
 
 
-@router.delete("/{org_unit_id}", status_code=204)
-async def delete_org_unit(
+@router.get("/{org_unit_id}/usage", response_model=OrgUnitUsage)
+async def get_org_unit_usage(
     org_unit_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     service = OrgUnitService(db)
-    await service.delete(org_unit_id, current_user)
+    return await service.get_usage(org_unit_id, current_user)
+
+
+@router.delete("/{org_unit_id}", status_code=204)
+async def delete_org_unit(
+    org_unit_id: int,
+    reassign_to: int | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = OrgUnitService(db)
+    await service.delete(org_unit_id, current_user, reassign_to)

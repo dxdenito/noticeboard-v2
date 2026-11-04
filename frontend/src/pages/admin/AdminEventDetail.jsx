@@ -8,6 +8,7 @@ import { canApprove, canDeleteAnyNotice } from "../../lib/permissions";
 import { AUDIENCE_LABELS, audienceStyle } from "../../lib/audience";
 import RejectModal from "../../components/admin/RejectModal";
 import { PENDING_COUNT_CHANGED_EVENT } from "../../layouts/AdminLayout";
+import { sanitizeHtml } from "../../lib/sanitize";
 
 const STATUS_STYLES = {
   approved: "bg-jkuat-green/10 text-jkuat-green",
@@ -215,7 +216,7 @@ export default function AdminEventDetail() {
 
         <div
           className="prose prose-neutral max-w-none text-gray-800"
-          dangerouslySetInnerHTML={{ __html: event.description }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(event.description) }}
         />
       </div>
 

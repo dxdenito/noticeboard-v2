@@ -7,6 +7,7 @@ import AttachmentThumb from "../components/AttachmentThumb";
 import AttachmentViewer from "../components/AttachmentViewer";
 import { getFileKind } from "../lib/fileType";
 import { AUDIENCE_LABELS, audienceStyle } from "../lib/audience";
+import { sanitizeHtml } from "../lib/sanitize";
 
 function formatFullDateTime(isoString) {
   const d = new Date(isoString);
@@ -163,7 +164,7 @@ export default function NoticeDetail() {
           </p>
           <div
             className="prose prose-neutral max-w-none text-gray-800"
-            dangerouslySetInnerHTML={{ __html: notice.body }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(notice.body) }}
           />
         </div>
       </div>

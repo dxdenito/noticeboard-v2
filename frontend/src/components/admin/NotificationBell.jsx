@@ -39,6 +39,8 @@ export default function NotificationBell() {
     setOpen(false);
     if (notification.notice_id) {
       navigate(`/dashboard/notices/${notification.notice_id}`);
+    } else if (notification.event_id) {
+      navigate(`/dashboard/events/${notification.event_id}`);
     }
   }
 

@@ -6,6 +6,7 @@ import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import RichTextEditor from "../../components/RichTextEditor";
+import { isHtmlEmpty as isBodyEmpty } from "../../lib/sanitize";
 
 function flattenTree(nodes, path = []) {
   let result = [];
@@ -19,16 +20,12 @@ function flattenTree(nodes, path = []) {
   return result;
 }
 
-function isBodyEmpty(html) {
-  if (!html) return true;
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  return !div.textContent.trim();
-}
+
 
 function validateForm(form) {
   const errors = {};
   if (!form.title.trim()) errors.title = "Title is required";
+  if (!form.audience) errors.audience = "Select an audience";
   if (isBodyEmpty(form.body)) errors.body = "Notice body can't be empty";
   if (!form.category_id) errors.category_id = "Select a category";
   if (!form.org_unit_id) errors.org_unit_id = "Select an org unit";
@@ -172,58 +169,66 @@ export default function PostNotice() {
           {showTitleError && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Pill
-            invalid={submitAttempted && !!errors.category_id}
-            options={[
-              { value: "", label: "Category" },
-              ...categories.map((c) => ({ value: c.id, label: c.name })),
-            ]}
-            renderOption={(o) => <option key={o.value} value={o.value}>{o.label}</option>}
-            selectProps={{
-              value: form.category_id,
-              onChange: (e) => updateField("category_id", e.target.value),
-            }}
-          >
-            In
-          </Pill>
-
-          <Pill
-            options={[
-              { value: "public", label: "Public" },
-              { value: "student", label: "Student only" },
-              { value: "staff", label: "Staff only" },
-            ]}
-            renderOption={(o) => <option key={o.value} value={o.value}>{o.label}</option>}
-            selectProps={{
-              value: form.audience,
-              onChange: (e) => updateField("audience", e.target.value),
-            }}
-          >
-            To
-          </Pill>
-
-          <Pill
-            invalid={submitAttempted && !!errors.org_unit_id}
-            options={[
-              { value: "", label: "Select org unit" },
-              ...allowedOrgUnits.map((u) => ({ value: u.id, label: u.label })),
-            ]}
-            renderOption={(o) => <option key={o.value} value={o.value}>{o.label}</option>}
-            selectProps={{
-              value: form.org_unit_id,
-              onChange: (e) => updateField("org_unit_id", e.target.value),
-            }}
-          >
-            For
-          </Pill>
-        </div>
-
-        {submitAttempted && (errors.category_id || errors.org_unit_id) && (
-          <p className="text-xs text-red-500 -mt-3">
-            {[errors.category_id, errors.org_unit_id].filter(Boolean).join(" · ")}
+        <div className="space-y-2">
+          <p className="text-xs text-gray-500">
+            Before publishing, choose a <span className="font-semibold text-gray-700">category</span>, who can see it
+            (<span className="font-semibold text-gray-700">audience</span>) and the{" "}
+            <span className="font-semibold text-gray-700">department</span> it's for.
           </p>
-        )}
+          <div className="flex flex-wrap items-center gap-2">
+            <Pill
+              invalid={submitAttempted && !!errors.category_id}
+              options={[
+                { value: "", label: "Select category" },
+                ...categories.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+              renderOption={(o) => <option key={o.value} value={o.value}>{o.label}</option>}
+              selectProps={{
+                value: form.category_id,
+                onChange: (e) => updateField("category_id", e.target.value),
+              }}
+            >
+              Category *
+            </Pill>
+
+            <Pill
+              invalid={submitAttempted && !!errors.audience}
+              options={[
+                { value: "", label: "Select audience" },
+                { value: "public", label: "Public (everyone)" },
+                { value: "student", label: "Student only" },
+                { value: "staff", label: "Staff only" },
+              ]}
+              renderOption={(o) => <option key={o.value} value={o.value}>{o.label}</option>}
+              selectProps={{
+                value: form.audience,
+                onChange: (e) => updateField("audience", e.target.value),
+              }}
+            >
+              Audience *
+            </Pill>
+
+            <Pill
+              invalid={submitAttempted && !!errors.org_unit_id}
+              options={[
+                { value: "", label: "Select department" },
+                ...allowedOrgUnits.map((u) => ({ value: u.id, label: u.label })),
+              ]}
+              renderOption={(o) => <option key={o.value} value={o.value}>{o.label}</option>}
+              selectProps={{
+                value: form.org_unit_id,
+                onChange: (e) => updateField("org_unit_id", e.target.value),
+              }}
+            >
+              Department *
+            </Pill>
+          </div>
+          {submitAttempted && (errors.category_id || errors.audience || errors.org_unit_id) && (
+            <p className="text-xs text-red-500">
+              {[errors.category_id, errors.audience, errors.org_unit_id].filter(Boolean).join(" · ")}
+            </p>
+          )}
+        </div>
 
         {isScopeRestricted && allowedOrgUnits.length === 0 && (
           <p className="text-xs text-red-600">

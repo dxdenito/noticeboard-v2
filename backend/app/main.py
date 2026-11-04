@@ -1,9 +1,10 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from app.core.config import settings
+from app.core.limiter import limiter
 from app.routes.auth import router as auth_router
 from app.routes.users import router as user_router
 from app.routes.notices import router as notice_router
@@ -18,16 +19,13 @@ from app.routes.institutional_domains import router as institutional_domain_rout
 from app.routes.notifications import router as notification_router
 from app.routes.events import router as event_router
 
-
-limiter = Limiter(key_func=get_remote_address)
-
 app = FastAPI(title="Noticeboard V2 API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173","https://59c8-41-204-187-5.ngrok-free.app","http://10.96.176.24:5173","http://192.168.137.1:5173","http://192.168.0.103:5173","http://192.168.100.75:5173"],
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,6 +45,7 @@ app.include_router(role_router)
 app.include_router(institutional_domain_router)
 app.include_router(notification_router)
 app.include_router(event_router)
+
 
 @app.get("/health")
 def health_check() -> dict:

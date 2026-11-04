@@ -5,7 +5,7 @@ from app.schemas.event_schema import EventRead, EventCreate, EventUpdate, EventR
 from app.models.user import User
 from app.models.notice import NoticeStatus
 from app.services.event_service import EventService
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, get_current_user, get_optional_current_user
 from fastapi import UploadFile, File
 from fastapi.responses import FileResponse
 
@@ -139,15 +139,21 @@ async def delete_event(
 @router.get("/{id}", response_model=EventRead)
 async def get_event(
     id: int,
+    current_user: User | None = Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     service = EventService(db)
-    return await service.get_by_id(id)
+    return await service.get_visible(id, current_user)
+
 
 @router.get("/{id}/image")
-async def get_event_image(id: int, db: AsyncSession = Depends(get_db)):
+async def get_event_image(
+    id: int,
+    current_user: User | None = Depends(get_optional_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     service = EventService(db)
-    event = await service.get_by_id(id)
+    event = await service.get_visible(id, current_user)
     if not event.image_url:
         raise HTTPException(404, "This event has no image")
     return FileResponse(path=event.image_url, filename=event.image_file_name)

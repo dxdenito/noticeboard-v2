@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Pencil, Power, PowerOff, Search } from "lucide-react";
+import { Pencil, Power, PowerOff, Search, Mail } from "lucide-react";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -235,6 +235,15 @@ export default function ManageUsers() {
     }
   }
 
+  async function resendActivation(u) {
+    try {
+      await api.post(`/users/${u.id}/resend-activation`);
+      showSuccess(`Activation email sent to ${u.email}`);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
   async function saveEdit() {
     try {
       const selectedRole = roleNameOf(editingUser.role_id);
@@ -350,7 +359,12 @@ export default function ManageUsers() {
                   <span className="text-[10px] font-bold uppercase text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                     {roleLabel(u.role.name)}
                   </span>
-                  {!u.is_active && (
+                  {!u.activated_at && (
+                    <span className="text-[10px] font-bold uppercase text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                      Pending activation
+                    </span>
+                  )}
+                  {u.activated_at && !u.is_active && (
                     <span className="text-[10px] font-bold uppercase text-jkuat-red bg-red-50 px-2 py-0.5 rounded">
                       Inactive
                     </span>
@@ -382,6 +396,14 @@ export default function ManageUsers() {
                   {SCOPED_ROLES.includes(u.role.name) && (canGrantPost || canGrantApprove) && (
                     <button onClick={() => openWorkflow(u)} className="text-xs text-blue-600 font-semibold">
                       Scope
+                    </button>
+                  )}.
+                  {!u.activated_at && (
+                    <button
+                      onClick={() => resendActivation(u)}
+                      className="flex items-center gap-1 text-xs text-amber-600 font-semibold"
+                    >
+                      <Mail size={14} /> Resend activation
                     </button>
                   )}
                   {u.id !== currentUser.id && (

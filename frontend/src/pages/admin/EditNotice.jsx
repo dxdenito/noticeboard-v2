@@ -5,6 +5,7 @@ import { api } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import RichTextEditor from "../../components/RichTextEditor";
+import { isHtmlEmpty as isBodyEmpty } from "../../lib/sanitize";
 
 function flattenTree(nodes, path = []) {
   let result = [];
@@ -18,12 +19,6 @@ function flattenTree(nodes, path = []) {
   return result;
 }
 
-function isBodyEmpty(html) {
-  if (!html) return true;
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  return !div.textContent.trim();
-}
 
 function validateForm(form) {
   const errors = {};

@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 
 from app.models.notice import Audience, NoticeStatus
+from app.core.sanitize import sanitize_html
 
 
 
@@ -30,6 +31,12 @@ class EventCreate(BaseModel):
     location: str | None = None
     audience: Audience
     org_unit_id: int
+    @field_validator("description")
+    @classmethod
+    def clean_description(cls, value):
+        if value is None:
+            return value
+        return sanitize_html(value)
 
 
 class EventUpdate(BaseModel):
@@ -40,6 +47,12 @@ class EventUpdate(BaseModel):
     location: str | None = None
     audience: Audience | None = None
     org_unit_id: int | None = None
+    @field_validator("description")
+    @classmethod
+    def clean_description(cls, value):
+        if value is None:
+            return value
+        return sanitize_html(value)
 
 
 class EventRead(BaseModel):

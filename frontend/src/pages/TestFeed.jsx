@@ -10,6 +10,7 @@ import { getFileKind } from '../lib/fileType';
 import AttachmentThumb from '../components/AttachmentThumb';
 import { AUDIENCE_LABELS, audienceStyle } from '../lib/audience';
 import { Lock, Building2, ChevronLeft, ChevronRight, MapPin, Calendar, ArrowRight } from 'lucide-react';
+import { htmlToText as stripHtml } from "../lib/sanitize";
 
 const PLACEHOLDER_IMAGES = [image, placeholderTwo, placeholderThree];
 const EVENTS_CAROUSEL_LIMIT = 12;
@@ -28,11 +29,6 @@ function findPreviewAttachment(attachments) {
   return attachments[0];
 }
 
-function stripHtml(html) {
-  const div = document.createElement("div");
-  div.innerHTML = html || "";
-  return div.textContent || "";
-}
 
 function formatFullDateTime(isoString) {
   const d = new Date(isoString);

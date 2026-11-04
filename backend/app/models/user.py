@@ -36,6 +36,9 @@ class User(Base):
     can_assign_approve_scope: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     can_delete_notice: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True)
+    activated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

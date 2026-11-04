@@ -5,8 +5,11 @@ from app.core.config import settings
 from app.repositories.user_repository import UserRepository
 from app.services.email_service import EmailService
 from app.models.user import User
+import hmac
+
 from app.core.security import (
-    verify_password, hash_password, create_password_reset_token, decode_access_token,
+    verify_password, hash_password, create_password_reset_token,
+    decode_access_token, password_fingerprint,
 )
 
 
@@ -45,7 +48,7 @@ class AuthService:
         email = email.strip().lower()
         user = await self.user_repo.get_by_email(email)
         if user is not None and user.is_active:
-            token = create_password_reset_token(user.id)
+            token = create_password_reset_token(user.id, user.hashed_password)
             reset_link = f"{settings.frontend_base_url}/reset-password?token={token}"
             background_tasks.add_task(
                 self.email_service.send_password_reset_email, user.email, user.full_name, reset_link
@@ -54,14 +57,21 @@ class AuthService:
         # confirming or denying an account's existence here is an information leak.
 
     async def reset_password(self, token: str, new_password: str) -> User:
+        invalid = HTTPException(400, "This reset link is invalid or has expired")
+
         payload = decode_access_token(token)
         if payload is None or payload.get("type") != "password_reset":
-            raise HTTPException(400, "This reset link is invalid or has expired")
+            raise invalid
 
-        user_id = payload.get("sub")
-        user = await self.user_repo.get_by_id(int(user_id))
-        if user is None:
-            raise HTTPException(404, "Account not found")
+        user = await self.user_repo.get_by_id(int(payload.get("sub")))
+        if user is None or not user.is_active:
+            raise invalid
+
+        token_fingerprint = payload.get("pwd")
+        if not token_fingerprint or not hmac.compare_digest(
+            token_fingerprint, password_fingerprint(user.hashed_password)
+        ):
+            raise invalid
 
         user.hashed_password = hash_password(new_password)
         user.must_change_password = False

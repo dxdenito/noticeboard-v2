@@ -1,0 +1,101 @@
+Folder PATH listing
+Volume serial number is ECA4-B673
+C:\USERS\SA\DESKTOP\JKUAT\NOTICEBOARD-V2\FRONTEND\SRC
+|   App.css
+|   App.jsx
+|   index.css
+|   main.jsx
+|   
++---api
+|       client.js
+|       
++---assets
+|       hero.png
+|       react.svg
+|       vite.svg
+|       
++---components
+|   |   AdminRoute.jsx
+|   |   AttachmentThumb.jsx
+|   |   AttachmentViewer.jsx
+|   |   AudienceVerify.jsx
+|   |   Footer.jsx
+|   |   Navbar.jsx
+|   |   Noticegrid.jsx
+|   |   NoticeSearchInput.jsx
+|   |   RequireCapability.jsx
+|   |   RichTextEditor.jsx
+|   |   ScrollToTop.jsx
+|   |   
+|   \---admin
+|           AdminFooter.jsx
+|           AdminNavbar.jsx
+|           NotificationBell.jsx
+|           OrgUnitNode.jsx
+|           Pagination.jsx
+|           PinFeedModal.jsx
+|           RejectModal.jsx
+|           
++---context
+|       AuthContext.jsx
+|       ToastContext.jsx
+|       
++---hooks
+|       useAudienceOneTap.js
+|       useNoticeSearch.js
+|       useNotifications.js
+|       
++---images
+|       image-1.jpg
+|       image-2.jpg
+|       image-3.jpg
+|       jkuatlogo.png
+|       jkuatlogo1.png
+|       
++---layouts
+|       AdminLayout.jsx
+|       MainLayout.jsx
+|       
++---lib
+|       audience.js
+|       fileType.js
+|       googleAudience.js
+|       permissions.js
+|       
++---pages
+|   |   Activate.jsx
+|   |   AllEvents.jsx
+|   |   BrowseNotices.jsx
+|   |   EventDetail.jsx
+|   |   Feed.jsx
+|   |   ForgotPassword.jsx
+|   |   Login.jsx
+|   |   Logobg.jsx
+|   |   NoticeDetail.jsx
+|   |   ResetPassword.jsx
+|   |   TestFeed.jsx
+|   |   
+|   \---admin
+|           AdminEventDetail.jsx
+|           AdminNoticeDetail.jsx
+|           AllNotices.jsx
+|           AuditLogViewer.jsx
+|           ChangePassword.jsx
+|           Dashboard.jsx
+|           EditEvent.jsx
+|           EditNotice.jsx
+|           ManageCorporateAdmins.jsx
+|           ManageInstitutionalDomains.jsx
+|           ManageTags.jsx
+|           ManageUsers.jsx
+|           MyEvents.jsx
+|           MyNotices.jsx
+|           OrgUnits.jsx
+|           PinnedNotices.jsx
+|           PostEvent.jsx
+|           PostNotice.jsx
+|           ReviewQueue.jsx
+|           
+\---utils
+        noticeSearch.js
+        

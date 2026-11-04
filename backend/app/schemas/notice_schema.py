@@ -1,10 +1,11 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from datetime import datetime
 
 from app.models.notice import Audience, NoticeStatus
 from app.schemas.attachment_schema import AttachmentRead
 from app.schemas.category_schema import CategoryRead
+from app.core.sanitize import sanitize_html
 
 
 class NoticeAuthorRead(BaseModel):
@@ -31,6 +32,12 @@ class NoticeCreate(BaseModel):
     audience: Audience
     org_unit_id: int
     expiry_date: datetime | None = None
+    @field_validator("body")
+    @classmethod
+    def clean_body(cls, value):
+        if value is None:
+            return value
+        return sanitize_html(value)
 
 class NoticeRead(BaseModel):
     id: int
@@ -63,6 +70,12 @@ class NoticeUpdate(BaseModel):
     audience: Audience | None = None
     org_unit_id: int | None = None
     expiry_date: datetime | None = None
+    @field_validator("body")
+    @classmethod
+    def clean_body(cls, value):
+        if value is None:
+            return value
+        return sanitize_html(value)
 
 class NoticeReject(BaseModel):
     rejection_notes: str = Field(..., min_length=1)

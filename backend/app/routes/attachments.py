@@ -1,3 +1,5 @@
+import mimetypes
+
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +28,15 @@ async def upload_attachment(
 
 
 @router.get("/", response_model=list[AttachmentRead])
-async def list_attachments(notice_id: int, db: AsyncSession = Depends(get_db)):
+async def list_attachments(
+    notice_id: int,
+    current_user: User | None = Depends(get_optional_current_user),
+    viewer_audience: Audience | None = Depends(get_viewer_audience),
+    db: AsyncSession = Depends(get_db),
+):
+    notice_service = NoticeService(db)
+    if not await notice_service.can_access_notice(notice_id, current_user, viewer_audience):
+        raise HTTPException(404, "Notice not found")
     service = AttachmentService(db)
     return await service.list_for_notice(notice_id)
 
@@ -53,15 +63,16 @@ async def download_attachment(
     if not allowed:
         raise HTTPException(404, "Attachment not found")
 
-    content_type = attachment.content_type or ""
-    inline_types = ("application/pdf",)
-    disposition = "inline" if content_type in inline_types or content_type.startswith("image/") else "attachment"
+    media_type = mimetypes.guess_type(attachment.file_name)[0] or "application/octet-stream"
+    inline_types = {"application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"}
+    disposition = "inline" if media_type in inline_types else "attachment"
 
     return FileResponse(
         path=attachment.file_url,
         filename=attachment.file_name,
-        media_type=attachment.content_type,
+        media_type=media_type,
         content_disposition_type=disposition,
+        headers={"X-Content-Type-Options": "nosniff"},
     )
 
 

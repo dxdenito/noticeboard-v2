@@ -47,3 +47,10 @@ class OrgUnitRead(BaseModel):
 
 class OrgUnitTreeNode(OrgUnitRead):
     children: list["OrgUnitTreeNode"] = []
+
+class OrgUnitUsage(BaseModel):
+    users: int
+    notices: int
+    events: int
+    scopes: int
+    children: int

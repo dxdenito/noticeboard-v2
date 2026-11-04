@@ -10,6 +10,7 @@ import AttachmentThumb from "../../components/AttachmentThumb";
 import RejectModal from "../../components/admin/RejectModal";
 import { PENDING_COUNT_CHANGED_EVENT } from "../../layouts/AdminLayout";
 import { AUDIENCE_LABELS, audienceStyle } from "../../lib/audience";
+import { sanitizeHtml } from "../../lib/sanitize";
 
 const STATUS_STYLES = {
   approved: "bg-jkuat-green/10 text-jkuat-green",
@@ -224,7 +225,7 @@ export default function AdminNoticeDetail() {
 
         <div
           className="prose prose-neutral max-w-none text-gray-800"
-          dangerouslySetInnerHTML={{ __html: notice.body }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(notice.body) }}
         />
 
         {notice.attachments?.length > 0 && (

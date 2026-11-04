@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, EmailStr
 from app.schemas.role_schema import RoleRead
 
@@ -24,6 +25,7 @@ class UserRead(BaseModel):
     org_unit: UserOrgUnitRead
     role: RoleRead
     is_active: bool
+    activated_at: datetime | None = None
     must_change_password: bool
     can_approve: bool | None
     can_post: bool | None
@@ -34,6 +36,7 @@ class UserRead(BaseModel):
     can_assign_post_scope: bool | None
     can_assign_approve_scope: bool | None
     can_delete_notice: bool | None
+    
 
     class Config:
         from_attributes = True

@@ -7,7 +7,8 @@ class NotificationRead(BaseModel):
     type: str
     title: str
     message: str
-    notice_id: int | None
+    notice_id: int | None = None
+    event_id: int | None = None
     is_read: bool
     created_at: datetime
 

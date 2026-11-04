@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Download, FileWarning } from "lucide-react";
 import mammoth from "mammoth";
 import { getFileKind, formatFileSize } from "../lib/fileType";
+import { sanitizeHtml } from "../lib/sanitize";
 
 function isDocx(attachment) {
   const type = (attachment.content_type || "").toLowerCase();
@@ -29,7 +30,7 @@ export default function AttachmentViewer({ attachment }) {
         return res.arrayBuffer();
       })
       .then((buffer) => mammoth.convertToHtml({ arrayBuffer: buffer }))
-      .then((result) => setDocxHtml(result.value))
+      .then((result) => setDocxHtml(sanitizeHtml(result.value)))
       .catch(() => setDocxError(true))
       .finally(() => setDocxLoading(false));
   }, [attachment.id]);

@@ -4,6 +4,8 @@ import { Pencil, Trash2, Info, MapPin } from "lucide-react";
 import { api } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
 import Pagination from "../../components/admin/Pagination";
+import { htmlToText as stripHtml } from "../../lib/sanitize";
+
 
 const PAGE_SIZE = 15;
 
@@ -26,11 +28,7 @@ const TABS = [
   { key: "rejected", label: "Rejected" },
 ];
 
-function stripHtml(html) {
-  const div = document.createElement("div");
-  div.innerHTML = html || "";
-  return div.textContent || "";
-}
+
 
 function formatEventDate(isoString) {
   return new Date(isoString).toLocaleDateString("default", { day: "numeric", month: "short", year: "numeric" });

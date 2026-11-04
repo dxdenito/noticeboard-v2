@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { canDeleteAnyNotice } from "../../lib/permissions";
 import Pagination from "../../components/admin/Pagination";
+import { htmlToText as stripHtml } from "../../lib/sanitize";
 
 const PAGE_SIZE = 20;
 
@@ -22,11 +23,7 @@ const TABS = [
   { key: "rejected", label: "Rejected" },
 ];
 
-function stripHtml(html) {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  return div.textContent || "";
-}
+
 
 export default function AllNotices() {
   const { user: currentUser } = useAuth();

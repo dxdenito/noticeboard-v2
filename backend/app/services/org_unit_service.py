@@ -1,12 +1,18 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, update, delete as sql_delete
 from fastapi import HTTPException
 
 from app.repositories.org_unit_repository import OrgUnitRepository
 from app.services.audit_log_service import AuditLogService
 from app.services.permission_service import PermissionService
 from app.models.org_unit import OrgUnit
-from app.schemas.org_unit_schema import OrgUnitCreate, OrgUnitUpdate, OrgUnitRead, OrgUnitTreeNode
 from app.models.user import User
+from app.models.notice import Notice
+from app.models.event import Event
+from app.models.admin_scope import AdminScope
+from app.schemas.org_unit_schema import (
+    OrgUnitCreate, OrgUnitUpdate, OrgUnitRead, OrgUnitTreeNode, OrgUnitUsage,
+)
 
 
 class OrgUnitService:
@@ -72,22 +78,112 @@ class OrgUnitService:
             current = await self.org_unit_repo.get_by_id(current.parent_id)
         return False
 
-    async def delete(self, org_unit_id: int, current_user: User) -> None:
+    async def _count(self, statement) -> int:
+        result = await self.db.execute(statement)
+        return result.scalar_one()
+
+    async def _usage(self, org_unit_id: int) -> OrgUnitUsage:
+        return OrgUnitUsage(
+            users=await self._count(
+                select(func.count(User.id)).where(User.org_unit_id == org_unit_id)
+            ),
+            notices=await self._count(
+                select(func.count(Notice.id)).where(Notice.org_unit_id == org_unit_id)
+            ),
+            events=await self._count(
+                select(func.count(Event.id)).where(Event.org_unit_id == org_unit_id)
+            ),
+            scopes=await self._count(
+                select(func.count(AdminScope.id)).where(
+                    AdminScope.org_unit_id == org_unit_id, AdminScope.revoked_at.is_(None)
+                )
+            ),
+            children=await self._count(
+                select(func.count(OrgUnit.id)).where(OrgUnit.parent_id == org_unit_id)
+            ),
+        )
+
+    async def get_usage(self, org_unit_id: int, current_user: User) -> OrgUnitUsage:
+        self._check_write_permission(current_user)
+        org_unit = await self.org_unit_repo.get_by_id(org_unit_id)
+        if not org_unit:
+            raise HTTPException(404, "Org unit not found")
+        return await self._usage(org_unit_id)
+
+    async def delete(self, org_unit_id: int, current_user: User, reassign_to: int | None = None) -> None:
         self._check_write_permission(current_user)
 
         org_unit = await self.org_unit_repo.get_by_id(org_unit_id)
         if not org_unit:
             raise HTTPException(404, "Org unit not found")
 
-        children = await self.org_unit_repo.list_children(org_unit_id)
-        if children:
+        usage = await self._usage(org_unit_id)
+        if usage.children:
             raise HTTPException(400, "Cannot delete an org unit that still has children")
 
+        needs_reassign = usage.users + usage.notices + usage.events + usage.scopes > 0
+        target: OrgUnit | None = None
+
+        if needs_reassign:
+            if reassign_to is None:
+                raise HTTPException(
+                    409,
+                    "This org unit still has users, notices, events or scope grants. "
+                    "Choose another org unit to move them to.",
+                )
+            if reassign_to == org_unit_id:
+                raise HTTPException(400, "Choose a different org unit to move records to")
+            target = await self.org_unit_repo.get_by_id(reassign_to)
+            if not target:
+                raise HTTPException(404, "Replacement org unit not found")
+
         name = org_unit.name
+
+        if target is not None:
+            await self.db.execute(
+                update(User).where(User.org_unit_id == org_unit_id).values(org_unit_id=target.id)
+            )
+            await self.db.execute(
+                update(Notice).where(Notice.org_unit_id == org_unit_id).values(org_unit_id=target.id)
+            )
+            await self.db.execute(
+                update(Event).where(Event.org_unit_id == org_unit_id).values(org_unit_id=target.id)
+            )
+
+            existing_result = await self.db.execute(
+                select(AdminScope.admin_id, AdminScope.scope_type).where(
+                    AdminScope.org_unit_id == target.id, AdminScope.revoked_at.is_(None)
+                )
+            )
+            existing_pairs = {(admin_id, scope_type) for admin_id, scope_type in existing_result.all()}
+
+            active_result = await self.db.execute(
+                select(AdminScope).where(
+                    AdminScope.org_unit_id == org_unit_id, AdminScope.revoked_at.is_(None)
+                )
+            )
+            for scope in active_result.scalars().all():
+                if (scope.admin_id, scope.scope_type) in existing_pairs:
+                    await self.db.delete(scope)
+                else:
+                    scope.org_unit_id = target.id
+
+        await self.db.execute(
+            sql_delete(AdminScope).where(
+                AdminScope.org_unit_id == org_unit_id, AdminScope.revoked_at.is_not(None)
+            )
+        )
+
         await self.org_unit_repo.delete(org_unit)
 
+        details = None
+        if target is not None:
+            details = (
+                f"moved to {target.name}: {usage.users} users, {usage.notices} notices, "
+                f"{usage.events} events, {usage.scopes} scope grants"
+            )
         await self.audit_log_service.log(
-            current_user, "org_unit.delete", "org_unit", org_unit_id, name,
+            current_user, "org_unit.delete", "org_unit", org_unit_id, name, details=details,
         )
 
     async def get_by_id(self, org_unit_id: int) -> OrgUnit:

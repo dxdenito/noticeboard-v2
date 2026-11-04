@@ -5,6 +5,7 @@ import placeholderTwo from '../images/image-2.jpg';
 import placeholderThree from '../images/image-3.jpg';
 import { getFileKind } from '../lib/fileType';
 import AttachmentThumb from '../components/AttachmentThumb';
+import { htmlToText as stripHtml } from "../lib/sanitize";
 
 const AUDIENCE_LABELS = {
   public: "Public",
@@ -39,11 +40,7 @@ function findPreviewAttachment(attachments) {
   return attachments[0];
 }
 
-function stripHtml(html) {
-  const div = document.createElement("div");
-  div.innerHTML = html || "";
-  return div.textContent || "";
-}
+
 
 function formatFullDateTime(isoString) {
   const d = new Date(isoString);

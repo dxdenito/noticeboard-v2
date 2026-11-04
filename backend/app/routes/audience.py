@@ -1,21 +1,22 @@
 from fastapi import APIRouter, Response, HTTPException, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+
 
 from app.core.google_auth import verify_google_id_token
 from app.core.security import create_audience_token
 from app.core.deps import get_db
 from app.core.config import settings
+from app.core.cookies import auth_cookie_flags
+from app.core.limiter import limiter
 from app.services.institutional_domain_service import InstitutionalDomainService
 from app.schemas.audience_schema import AudienceVerifyRequest, AudienceVerifyResponse
 
 router = APIRouter(prefix="/audience", tags=["audience"])
-limiter = Limiter(key_func=get_remote_address)
+
 
 
 @router.post("/verify", response_model=AudienceVerifyResponse)
-@limiter.limit("10/minute")
+@limiter.limit("100/minute")
 async def verify_audience(request: Request, data: AudienceVerifyRequest, response: Response, db: AsyncSession = Depends(get_db)):
     email = verify_google_id_token(data.id_token)
     if email is None:
@@ -30,8 +31,6 @@ async def verify_audience(request: Request, data: AudienceVerifyRequest, respons
     response.set_cookie(
         key="audience_token",
         value=token,
-        httponly=True,
-        secure=settings.cross_origin_cookies,
-        samesite="none" if settings.cross_origin_cookies else "lax",
+        **auth_cookie_flags(),
     )
     return AudienceVerifyResponse(audience=audience.value)

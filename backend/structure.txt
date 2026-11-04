@@ -1,0 +1,230 @@
+Folder PATH listing
+Volume serial number is ECA4-B673
+C:\USERS\SA\DESKTOP\JKUAT\NOTICEBOARD-V2\BACKEND\APP
+|   main.py
+|   __init__.py
+|   
++---.mypy_cache
+|   |   .gitignore
+|   |   CACHEDIR.TAG
+|   |   
+|   \---3.14
+|           cache.0.db
+|           cache.1.db
+|           cache.10.db
+|           cache.11.db
+|           cache.12.db
+|           cache.13.db
+|           cache.14.db
+|           cache.15.db
+|           cache.2.db
+|           cache.3.db
+|           cache.4.db
+|           cache.5.db
+|           cache.6.db
+|           cache.7.db
+|           cache.8.db
+|           cache.9.db
+|           
++---core
+|   |   audience_verification.py
+|   |   config.py
+|   |   database.py
+|   |   deps.py
+|   |   file_storage.py
+|   |   google_auth.py
+|   |   security.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           audience_verification.cpython-314.pyc
+|           config.cpython-314.pyc
+|           database.cpython-314.pyc
+|           deps.cpython-314.pyc
+|           file_storage.cpython-314.pyc
+|           google_auth.cpython-314.pyc
+|           security.cpython-314.pyc
+|           __init__.cpython-314.pyc
+|           
++---models
+|   |   admin_scope.py
+|   |   attachment.py
+|   |   audit_log.py
+|   |   category.py
+|   |   event.py
+|   |   institutional_domain.py
+|   |   notice.py
+|   |   notification.py
+|   |   org_unit.py
+|   |   role.py
+|   |   user.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           admin_scope.cpython-314.pyc
+|           attachment.cpython-314.pyc
+|           audit_log.cpython-314.pyc
+|           category.cpython-314.pyc
+|           club.cpython-314.pyc
+|           course.cpython-314.pyc
+|           department.cpython-314.pyc
+|           event.cpython-314.pyc
+|           institutional_domain.cpython-314.pyc
+|           notice.cpython-314.pyc
+|           notification.cpython-314.pyc
+|           org_unit.cpython-314.pyc
+|           role.cpython-314.pyc
+|           scope_audit_log.cpython-314.pyc
+|           user.cpython-314.pyc
+|           __init__.cpython-314.pyc
+|           
++---repositories
+|   |   admin_scope_repository.py
+|   |   attachment_repository.py
+|   |   audit_log_repository.py
+|   |   category_repository.py
+|   |   event_repository.py
+|   |   institutional_domain_repository.py
+|   |   notice_repository.py
+|   |   notification_repository.py
+|   |   org_units_repository.py
+|   |   org_unit_repository.py
+|   |   role_repository.py
+|   |   user_repository.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           admin_scope_repository.cpython-314.pyc
+|           attachment_repository.cpython-314.pyc
+|           audit_log_repository.cpython-314.pyc
+|           category_repository.cpython-314.pyc
+|           club_repository.cpython-314.pyc
+|           course_repository.cpython-314.pyc
+|           department_repository.cpython-314.pyc
+|           event_repository.cpython-314.pyc
+|           institutional_domain_repository.cpython-314.pyc
+|           notice_repository.cpython-314.pyc
+|           notification_repository.cpython-314.pyc
+|           org_unit_repository.cpython-314.pyc
+|           role_repository.cpython-314.pyc
+|           user_repository.cpython-314.pyc
+|           __init__.cpython-314.pyc
+|           
++---routes
+|   |   admin_scope.py
+|   |   attachments.py
+|   |   audience.py
+|   |   audit_logs.py
+|   |   auth.py
+|   |   categories.py
+|   |   events.py
+|   |   institutional_domains.py
+|   |   notices.py
+|   |   notifications.py
+|   |   org_units.py
+|   |   roles.py
+|   |   users.py
+|   |   __init__.py
+|   |   
+|   +---admin
+|   |       users.py
+|   |       
+|   \---__pycache__
+|           admin_scope.cpython-314.pyc
+|           attachments.cpython-314.pyc
+|           audience.cpython-314.pyc
+|           audit_logs.cpython-314.pyc
+|           auth.cpython-314.pyc
+|           categories.cpython-314.pyc
+|           clubs.cpython-314.pyc
+|           courses.cpython-314.pyc
+|           departments.cpython-314.pyc
+|           events.cpython-314.pyc
+|           institutional_domains.cpython-314.pyc
+|           notices.cpython-314.pyc
+|           notifications.cpython-314.pyc
+|           org_units.cpython-314.pyc
+|           roles.cpython-314.pyc
+|           users.cpython-314.pyc
+|           __init__.cpython-314.pyc
+|           
++---schemas
+|   |   attachment_schema.py
+|   |   audience_schema.py
+|   |   audit_log_schema.py
+|   |   category_schema.py
+|   |   event_schema.py
+|   |   institutional_domain_schema.py
+|   |   notice_schema.py
+|   |   notification_schema.py
+|   |   org_unit_schema.py
+|   |   role_schema.py
+|   |   scope_schema.py
+|   |   user_schema.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           attachment_schema.cpython-314.pyc
+|           audience_schema.cpython-314.pyc
+|           audit_log_schema.cpython-314.pyc
+|           category_schema.cpython-314.pyc
+|           club_schema.cpython-314.pyc
+|           course_schema.cpython-314.pyc
+|           department_schema.cpython-314.pyc
+|           event_schema.cpython-314.pyc
+|           institutional_domain_schema.cpython-314.pyc
+|           notice_schema.cpython-314.pyc
+|           notification_schema.cpython-314.pyc
+|           org_unit_schema.cpython-314.pyc
+|           role_schema.cpython-314.pyc
+|           scope_schema.cpython-314.pyc
+|           user_schema.cpython-314.pyc
+|           __init__.cpython-314.pyc
+|           
++---scripts
+|   |   create_super_admin.py
+|   |   seed_data.py
+|   |   
+|   \---__pycache__
+|           create_super_admin.cpython-314.pyc
+|           seed_data.cpython-314.pyc
+|           
++---services
+|   |   admin_scope_service.py
+|   |   attachment_service.py
+|   |   audit_log_service.py
+|   |   auth_service.py
+|   |   category_service.py
+|   |   email_service.py
+|   |   event_service.py
+|   |   institutional_domain_service.py
+|   |   notice_service.py
+|   |   notification_service.py
+|   |   org_unit_service.py
+|   |   permission_service.py
+|   |   user_admin_service.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           admin_scope_service.cpython-314.pyc
+|           attachment_service.cpython-314.pyc
+|           audit_log_service.cpython-314.pyc
+|           auth_service.cpython-314.pyc
+|           category_service.cpython-314.pyc
+|           club_service.cpython-314.pyc
+|           course_service.cpython-314.pyc
+|           department_service.cpython-314.pyc
+|           email_service.cpython-314.pyc
+|           event_service.cpython-314.pyc
+|           institutional_domain_service.cpython-314.pyc
+|           notice_service.cpython-314.pyc
+|           notification_service.cpython-314.pyc
+|           org_unit_service.cpython-314.pyc
+|           permission_service.cpython-314.pyc
+|           user_admin_service.cpython-314.pyc
+|           __init__.cpython-314.pyc
+|           
+\---__pycache__
+        main.cpython-314.pyc
+        __init__.cpython-314.pyc
+        

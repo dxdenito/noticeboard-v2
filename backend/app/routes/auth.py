@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, Response, BackgroundTasks, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
@@ -12,9 +11,11 @@ from app.models.user import User
 from app.schemas.user_schema import ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
 
 from app.core.config import settings
+from app.core.cookies import auth_cookie_flags
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-limiter = Limiter(key_func=get_remote_address)
+
 
 
 @router.post("/login")
@@ -33,10 +34,8 @@ async def login(
     response.set_cookie(
         key="access_token",
         value=access_token,
-        httponly=True,
-        secure=settings.cross_origin_cookies,
-        samesite="none" if settings.cross_origin_cookies else "lax",
         max_age=settings.access_token_expire_minutes * 60,
+        **auth_cookie_flags(),
     )
 
     return {"message": "Logged in successfully", "must_change_password": user.must_change_password}
@@ -44,7 +43,7 @@ async def login(
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token")
+    response.delete_cookie("access_token", **auth_cookie_flags())
     return {"message": "Logged out successfully"}
 
 

@@ -1,10 +1,12 @@
 import hashlib
+import hmac
 from datetime import datetime, timedelta, timezone
 
 import bcrypt # type: ignore
 from jose import JWTError, jwt
 
 from app.core.config import settings
+
 
 
 def hash_password(password: str) -> str:
@@ -52,10 +54,19 @@ def create_activation_token(user_id: int, expire_days: int = 7) -> str:
     }
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
-def create_password_reset_token(user_id: int, expire_hours: int = 24) -> str:
+def password_fingerprint(hashed_password: str) -> str:
+    return hmac.new(
+        settings.secret_key.encode("utf-8"),
+        hashed_password.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()[:24]
+
+
+def create_password_reset_token(user_id: int, hashed_password: str, expire_hours: int = 24) -> str:
     to_encode = {
         "sub": str(user_id),
         "type": "password_reset",
+        "pwd": password_fingerprint(hashed_password),
         "exp": datetime.now(timezone.utc) + timedelta(hours=expire_hours),
     }
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)

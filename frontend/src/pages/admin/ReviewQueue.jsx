@@ -6,6 +6,7 @@ import { useToast } from "../../context/ToastContext";
 import Pagination from "../../components/admin/Pagination";
 import RejectModal from "../../components/admin/RejectModal";
 import { PENDING_COUNT_CHANGED_EVENT } from "../../layouts/AdminLayout";
+import { htmlToText as stripHtml } from "../../lib/sanitize";
 
 const PAGE_SIZE = 20;
 
@@ -14,11 +15,7 @@ const TABS = [
   { key: "events", label: "Events" },
 ];
 
-function stripHtml(html) {
-  const div = document.createElement("div");
-  div.innerHTML = html || "";
-  return div.textContent || "";
-}
+
 
 function formatEventDate(isoString) {
   return new Date(isoString).toLocaleDateString("default", { day: "numeric", month: "short", year: "numeric" });

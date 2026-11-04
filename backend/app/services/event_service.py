@@ -11,7 +11,7 @@ from app.models.notice import NoticeStatus
 from app.models.user import User
 from app.schemas.event_schema import EventCreate, EventUpdate
 from fastapi import UploadFile
-from app.core.file_storage import save_upload_file
+from app.core.file_storage import save_upload_file, IMAGE_EXTENSIONS
 
 ADMIN_ROLES = ("super_admin", "ict_sub_admin", "corporate_super_admin", "corporate_admin", "web_admin")
 AUTO_PUBLISH_ROLES = ("super_admin", "corporate_super_admin")
@@ -60,6 +60,18 @@ class EventService:
         if not event:
             raise HTTPException(404, "Event not found")
         return event
+
+    async def get_visible(self, event_id: int, current_user: User | None) -> Event:
+        event = await self.get_by_id(event_id)
+        if event.status == NoticeStatus.APPROVED:
+            return event
+        if current_user is None:
+            raise HTTPException(404, "Event not found")
+        if event.author_id == current_user.id:
+            return event
+        if await self.permission_service.can_approve_for(current_user, event.org_unit_id):
+            return event
+        raise HTTPException(404, "Event not found")
 
     async def list_upcoming(self, limit: int = 50, offset: int = 0) -> list[Event]:
         return await self.event_repo.list_upcoming(limit, offset)
@@ -166,7 +178,7 @@ class EventService:
         if current_user.role.name != "super_admin" and event.author_id != current_user.id:
             raise HTTPException(403, "Only the event's author or a super_admin can update its image")
 
-        file_path, _ = await save_upload_file(file, subfolder=f"events/{event_id}")
+        file_path, _ = await save_upload_file(file, subfolder=f"events/{event_id}", allowed_extensions=IMAGE_EXTENSIONS)
 
         event.image_url = file_path
         event.image_file_name = file.filename or "unnamed"

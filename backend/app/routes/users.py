@@ -1,18 +1,18 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.user_admin_service import UserAdminService
-from app.schemas.user_schema import UserCreateByAdmin
 from fastapi import APIRouter, Depends, BackgroundTasks
-from app.schemas.user_schema import UserRead, UserUpdate
+
+from app.services.user_admin_service import UserAdminService
+from app.schemas.user_schema import UserCreateByAdmin, UserRead, UserUpdate
 from app.core.deps import get_db, get_current_user
 from app.models.user import User
 
-
-
 router = APIRouter(prefix="/users", tags=["users"])
+
 
 @router.get("/me", response_model=UserRead)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
 
 @router.post("/", response_model=UserRead)
 async def create_user(
@@ -24,11 +24,25 @@ async def create_user(
     service = UserAdminService(db)
     return await service.create_user(data, current_user, background_tasks)
 
+
 @router.post("/activate")
 async def activate_user(token: str, db: AsyncSession = Depends(get_db)):
     service = UserAdminService(db)
     await service.activate_account(token)
     return {"status": "activated"}
+
+
+@router.post("/{id}/resend-activation")
+async def resend_activation(
+    id: int,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = UserAdminService(db)
+    await service.resend_activation(id, current_user, background_tasks)
+    return {"message": "Activation email sent"}
+
 
 @router.get("/", response_model=list[UserRead])
 async def list_users(
@@ -40,6 +54,7 @@ async def list_users(
 ):
     service = UserAdminService(db)
     return await service.list_users(current_user, limit, offset, search)
+
 
 @router.patch("/{id}", response_model=UserRead)
 async def update_user(

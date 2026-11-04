@@ -1,12 +1,13 @@
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, BackgroundTasks, status
+from fastapi import HTTPException, BackgroundTasks
 
 from app.core.config import settings
 from app.repositories.user_repository import UserRepository
 from app.repositories.role_repository import RoleRepository
 from app.services.institutional_domain_service import InstitutionalDomainService
 from app.services.email_service import EmailService
-from app.core.security import hash_password, create_activation_token
+from app.core.security import hash_password, create_activation_token, decode_access_token
 from app.models.user import User
 from app.schemas.user_schema import UserCreateByAdmin, UserUpdate
 
@@ -32,6 +33,13 @@ class UserAdminService:
         if current_user.role.name in ("ict_sub_admin", "corporate_admin"):
             return bool(current_user.can_manage_users)
         return False
+
+    def _queue_activation_email(self, user: User, background_tasks: BackgroundTasks) -> None:
+        token = create_activation_token(user.id)
+        activation_link = f"{settings.frontend_base_url}/activate?token={token}"
+        background_tasks.add_task(
+            self.email_service.send_activation_email, user.email, user.full_name, activation_link
+        )
 
     async def create_user(
         self, data: UserCreateByAdmin, current_user: User, background_tasks: BackgroundTasks
@@ -85,17 +93,11 @@ class UserAdminService:
         if reloaded is None:
             raise HTTPException(500, "User creation failed unexpectedly")
 
-        token = create_activation_token(reloaded.id)
-        activation_link = f"{settings.frontend_base_url}/activate?token={token}"
-        background_tasks.add_task(
-            self.email_service.send_activation_email, reloaded.email, reloaded.full_name, activation_link
-        )
+        self._queue_activation_email(reloaded, background_tasks)
 
         return reloaded
 
     async def activate_account(self, token: str) -> User:
-        from app.core.security import decode_access_token
-
         payload = decode_access_token(token)
         if payload is None or payload.get("type") != "account_activation":
             raise HTTPException(400, "This activation link is invalid or has expired")
@@ -105,11 +107,30 @@ class UserAdminService:
         if user is None:
             raise HTTPException(404, "Account not found")
 
-        if user.is_active:
-            raise HTTPException(400, "This account is already active")
+        if user.activated_at is not None:
+            raise HTTPException(
+                400,
+                "This account has already been activated. If you cannot log in, contact an administrator.",
+            )
 
         user.is_active = True
+        user.activated_at = datetime.now(timezone.utc)
         return await self.user_repo.update(user)
+
+    async def resend_activation(
+        self, user_id: int, current_user: User, background_tasks: BackgroundTasks
+    ) -> None:
+        if not self._has_manage_users_right(current_user):
+            raise HTTPException(403, "You don't have permission to manage users")
+
+        user = await self.user_repo.get_by_id(user_id)
+        if user is None:
+            raise HTTPException(404, "User not found")
+
+        if user.activated_at is not None:
+            raise HTTPException(400, "This account has already been activated")
+
+        self._queue_activation_email(user, background_tasks)
 
     async def update_user(self, user_id: int, data: UserUpdate, current_user: User) -> User:
         if not self._has_manage_users_right(current_user):
@@ -141,6 +162,9 @@ class UserAdminService:
 
         for field, value in payload.items():
             setattr(user, field, value)
+
+        if payload.get("is_active") is True and user.activated_at is None:
+            user.activated_at = datetime.now(timezone.utc)
 
         updated = await self.user_repo.update(user)
         reloaded = await self.user_repo.get_by_id(updated.id)

@@ -85,5 +85,9 @@ async def get_optional_current_user(
     user_email: str | None = payload.get("sub")
     if user_email is None:
         return None
+    
     user_repo = UserRepository(db)
-    return await user_repo.get_by_email(user_email)
+    user = await user_repo.get_by_email(user_email)
+    if user is None or not user.is_active:
+        return None
+    return user
