@@ -67,6 +67,7 @@ export default function AdminEventDetail() {
     setActionLoading(true);
     try {
       await api.patch(`/events/${id}/approve`);
+      window.dispatchEvent(new Event(PENDING_COUNT_CHANGED_EVENT));
       showSuccess("Event approved");
       load();
     } catch (err) {
@@ -80,6 +81,7 @@ export default function AdminEventDetail() {
     setActionLoading(true);
     try {
       await api.patch(`/events/${id}/reject`, { rejection_notes: notes });
+      window.dispatchEvent(new Event(PENDING_COUNT_CHANGED_EVENT));
       showSuccess("Event rejected");
       setShowRejectModal(false);
       load();

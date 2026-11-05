@@ -83,3 +83,8 @@ export function canDeleteAnyNotice(user) {
 export function canManageInstitutionalDomains(user) {
   return user?.role?.name === "super_admin";
 }
+
+export function canViewAllEvents(user) {
+  if (!user) return false;
+  return ["super_admin", "ict_sub_admin", "corporate_admin"].includes(user.role.name);
+}

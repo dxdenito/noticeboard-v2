@@ -37,6 +37,7 @@ import EventDetail from "./pages/EventDetail";
 import AllEvents from "./pages/AllEvents";
 import ScrollToTop from "./components/ScrollToTop";
 
+
 function App() {
   return (
     <AuthProvider>
@@ -62,6 +63,7 @@ function App() {
           <Route path="/dashboard/my-events" element={<MyEvents/>}/>
           <Route path="/dashboard/edit-event/:id" element={<EditEvent/>}/>
           <Route path="/dashboard/events/:id" element={<AdminEventDetail/>}/>
+          <Route path="/dashboard/all-events" element={<AllEvents/>}/>
           <Route path="/dashboard/my-notices" element={<MyNotices/>}/>
           <Route path="/dashboard/notices/:id" element={<AdminNoticeDetail/>}/>
           <Route path="/dashboard/all-notices" element={

@@ -29,6 +29,7 @@ export default function ReviewQueue() {
   const [actionLoading, setActionLoading] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
   const { showError, showSuccess } = useToast();
+  const [counts, setCounts] = useState({ notices: 0, events: 0 });
 
   const endpoint = tab === "notices" ? "/notices" : "/events";
 
@@ -46,6 +47,19 @@ export default function ReviewQueue() {
 
   useEffect(() => { load(); }, [tab, page]);
 
+  async function loadCounts() {
+    const [notices, events] = await Promise.allSettled([
+      api.get("/notices/pending/count"),
+      api.get("/events/pending/count"),
+    ]);
+    setCounts({
+      notices: notices.status === "fulfilled" ? notices.value.count : 0,
+      events: events.status === "fulfilled" ? events.value.count : 0,
+    });
+  }
+
+  useEffect(() => { loadCounts(); }, []);
+
   function handleTabChange(key) {
     setTab(key);
     setPage(0);
@@ -56,7 +70,8 @@ export default function ReviewQueue() {
     try {
       await api.patch(`${endpoint}/${id}/approve`);
       setItems((prev) => prev.filter((i) => i.id !== id));
-      if (tab === "notices") window.dispatchEvent(new Event(PENDING_COUNT_CHANGED_EVENT));
+      window.dispatchEvent(new Event(PENDING_COUNT_CHANGED_EVENT));
+      loadCounts();
       showSuccess(tab === "notices" ? "Notice approved" : "Event approved");
     } catch (err) {
       showError(err.message);
@@ -71,7 +86,8 @@ export default function ReviewQueue() {
     try {
       await api.patch(`${endpoint}/${id}/reject`, { rejection_notes: notes });
       setItems((prev) => prev.filter((i) => i.id !== id));
-      if (tab === "notices") window.dispatchEvent(new Event(PENDING_COUNT_CHANGED_EVENT));
+      window.dispatchEvent(new Event(PENDING_COUNT_CHANGED_EVENT));
+      loadCounts();
       showSuccess(tab === "notices" ? "Notice rejected" : "Event rejected");
       setRejectTarget(null);
     } catch (err) {
@@ -96,7 +112,7 @@ export default function ReviewQueue() {
               tab === t.key ? "bg-jkuat-green text-white" : "bg-gray-100 text-gray-600"
             }`}
           >
-            {t.label}
+            {t.label} ({counts[t.key]})
           </button>
         ))}
       </div>

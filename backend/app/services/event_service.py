@@ -219,3 +219,8 @@ class EventService:
 
     async def count_my_events(self, current_user: User) -> dict[str, int]:
         return await self.event_repo.count_by_author(current_user.id)
+
+    async def count_all_for_oversight(self, current_user: User) -> dict[str, int]:
+        if current_user.role.name not in ("super_admin", "ict_sub_admin", "corporate_admin"):
+            raise HTTPException(403, "You don't have permission to view all events")
+        return await self.event_repo.count_all()

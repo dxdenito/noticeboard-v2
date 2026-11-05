@@ -103,6 +103,14 @@ async def get_all_events(
     events = await service.list_all_for_oversight(current_user, limit, offset, search, status)
     return [EventRead.model_validate(e) for e in events]
 
+@router.get("/all/counts")
+async def get_all_event_counts(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = EventService(db)
+    return await service.count_all_for_oversight(current_user)
+
 
 @router.patch("/{id}", response_model=EventRead)
 async def update_event(

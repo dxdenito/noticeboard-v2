@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, Download } from "lucide-react";
 import { api } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
 
@@ -52,7 +52,8 @@ export default function AuditLogViewer() {
   const [page, setPage] = useState(0);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [searchInput, setSearchInput] = useState("");
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
+  const [exporting, setExporting] = useState(false);
 
   const hasFilters = Object.values(filters).some((v) => v !== "");
 
@@ -68,25 +69,63 @@ export default function AuditLogViewer() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+    function filterParams() {
+    const params = new URLSearchParams();
+    if (filters.actorId) params.set("actor_id", filters.actorId);
+    if (filters.targetType) params.set("target_type", filters.targetType);
+    if (filters.action) params.set("action", filters.action);
+    if (filters.search) params.set("search", filters.search);
+    if (filters.dateFrom) params.set("date_from", startOfDayIso(filters.dateFrom));
+    if (filters.dateTo) params.set("date_to", startOfNextDayIso(filters.dateTo));
+    return params;
+  }
+
   async function load() {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        limit: String(PAGE_SIZE),
-        offset: String(page * PAGE_SIZE),
-      });
-      if (filters.actorId) params.set("actor_id", filters.actorId);
-      if (filters.targetType) params.set("target_type", filters.targetType);
-      if (filters.action) params.set("action", filters.action);
-      if (filters.search) params.set("search", filters.search);
-      if (filters.dateFrom) params.set("date_from", startOfDayIso(filters.dateFrom));
-      if (filters.dateTo) params.set("date_to", startOfNextDayIso(filters.dateTo));
+      const params = filterParams();
+      params.set("limit", String(PAGE_SIZE));
+      params.set("offset", String(page * PAGE_SIZE));
       const data = await api.get(`/audit-logs/?${params.toString()}`);
       setLogs(data);
     } catch (err) {
       showError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/audit-logs/export?${filterParams().toString()}`,
+        { credentials: "include" }
+      );
+      if (!response.ok) {
+        let message = "Export failed";
+        try {
+          const body = await response.json();
+          if (typeof body.detail === "string") message = body.detail;
+        } catch {
+          message = "Export failed";
+        }
+        throw new Error(message);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `audit-log-${toInputDate(new Date())}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showSuccess("Export downloaded");
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -181,6 +220,13 @@ export default function AuditLogViewer() {
                 <X size={12} /> Clear
               </button>
             )}
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-full bg-jkuat-green text-white disabled:opacity-50"
+            >
+              <Download size={12} /> {exporting ? "Exporting..." : "Export Excel"}
+            </button>
           </div>
         </div>
       </div>

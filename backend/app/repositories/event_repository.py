@@ -119,3 +119,13 @@ class EventRepository:
             counts[status.value] = count
         counts["total"] = sum(counts[status.value] for status in NoticeStatus)
         return counts
+
+    async def count_all(self) -> dict[str, int]:
+        from sqlalchemy import func
+        statement = select(Event.status, func.count(Event.id)).group_by(Event.status)
+        result = await self.db.execute(statement)
+        counts = {status.value: 0 for status in NoticeStatus}
+        for status, count in result.all():
+            counts[status.value] = count
+        counts["total"] = sum(counts[status.value] for status in NoticeStatus)
+        return counts
