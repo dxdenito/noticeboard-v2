@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ChevronRight, ChevronDown, Plus, Pencil, Trash2 } from "lucide-react";
 import { api } from "../../api/client";
 
+
 let cachedTypes = null;
 
 async function fetchOrgUnitTypes() {

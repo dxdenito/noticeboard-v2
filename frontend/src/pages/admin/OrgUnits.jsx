@@ -3,6 +3,12 @@ import { Plus } from "lucide-react";
 import { api } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
 import OrgUnitNode, { OrgUnitForm } from "../../components/admin/OrgUnitNode";
+import CsvTools from "../../components/admin/CsvTools";
+
+const ORG_UNIT_TEMPLATE =
+  "name,type,parent_path,head_title,head_name\n" +
+  "College of Example,College,,Dean,Jane Doe\n" +
+  "Department of Sample,Department,College of Example,Chairperson,John Doe\n";
 
 function flattenTree(nodes, path = []) {
   let result = [];
@@ -131,14 +137,25 @@ export default function OrgUnits() {
 
   return (
     <div className="max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h1 className="text-xl font-black text-gray-900">Org Units</h1>
-        <button
-          onClick={() => setShowRootForm((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-jkuat-green text-white rounded-lg"
-        >
-          <Plus size={15} /> Add Division
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <CsvTools
+            exportPath="/org-units/export"
+            importPath="/org-units/import"
+            exportFilename="org-units.csv"
+            templateCsv={ORG_UNIT_TEMPLATE}
+            templateFilename="org-units-template.csv"
+            noun="org unit"
+            onImported={loadTree}
+          />
+          <button
+            onClick={() => setShowRootForm((v) => !v)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-jkuat-green text-white rounded-lg"
+          >
+            <Plus size={15} /> Add Division
+          </button>
+        </div>
       </div>
 
       {showRootForm && (

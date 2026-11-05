@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { api } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
+import CsvTools from "../../components/admin/CsvTools";
+
+const DOMAIN_TEMPLATE =
+  "domain,audience,label\n" +
+  "students.example.ac.ke,student,Example students\n" +
+  "staff.example.ac.ke,staff,Example staff\n";
 
 const AUDIENCE_STYLES = {
   student: "bg-jkuat-blue/10 text-jkuat-blue",
@@ -59,10 +65,23 @@ export default function ManageInstitutionalDomains() {
 
   return (
     <div>
-      <h1 className="text-2xl font-extrabold text-gray-900 mb-1">Institutional Email Domains</h1>
-      <p className="text-sm text-gray-500 mb-4">
-        Visitors verifying with an email matching one of these domains unlock student/staff notices accordingly.
-      </p>
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-gray-900 mb-1">Institutional Email Domains</h1>
+          <p className="text-sm text-gray-500">
+            Visitors verifying with an email matching one of these domains unlock student/staff notices accordingly.
+          </p>
+        </div>
+        <CsvTools
+          exportPath="/institutional-domains/export"
+          importPath="/institutional-domains/import"
+          exportFilename="institutional-domains.csv"
+          templateCsv={DOMAIN_TEMPLATE}
+          templateFilename="institutional-domains-template.csv"
+          noun="domain"
+          onImported={load}
+        />
+      </div>
 
       <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-lg p-4 mb-6 flex flex-wrap gap-2">
         <input

@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update, delete as sql_delete
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 
 from app.repositories.org_unit_repository import OrgUnitRepository
 from app.services.audit_log_service import AuditLogService, snapshot, format_changes
@@ -13,6 +13,16 @@ from app.models.admin_scope import AdminScope
 from app.schemas.org_unit_schema import (
     OrgUnitCreate, OrgUnitUpdate, OrgUnitRead, OrgUnitTreeNode, OrgUnitUsage,
 )
+
+from app.core.csv_utils import build_csv, read_csv_upload
+from app.schemas.import_schema import ImportResult, ImportRowIssue
+from collections import Counter
+
+PATH_SEPARATOR = " > "
+
+
+def _norm(value: str) -> str:
+    return " ".join(value.split()).casefold()
 
 
 ORG_UNIT_AUDIT_FIELDS = ("name", "type", "parent_id", "head_title", "head_name")
@@ -113,6 +123,209 @@ class OrgUnitService:
         if not org_unit:
             raise HTTPException(404, "Org unit not found")
         return await self._usage(org_unit_id)
+
+    def _path_parts(self, unit: OrgUnit, by_id: dict[int, OrgUnit]) -> list[str]:
+        parts = [unit.name]
+        node = unit
+        visited = {unit.id}
+        while node.parent_id is not None and node.parent_id in by_id and node.parent_id not in visited:
+            node = by_id[node.parent_id]
+            visited.add(node.id)
+            parts.append(node.name)
+        parts.reverse()
+        return parts
+
+    async def export_csv(self, current_user: User) -> bytes:
+        self._check_write_permission(current_user)
+        units = await self.org_unit_repo.list_all()
+        by_id = {unit.id: unit for unit in units}
+        name_counts = Counter(_norm(unit.name) for unit in units)
+
+        entries = [(self._path_parts(unit, by_id), unit) for unit in units]
+        entries.sort(key=lambda entry: [part.casefold() for part in entry[0]])
+
+        rows = []
+        for parts, unit in entries:
+            parent = by_id.get(unit.parent_id) if unit.parent_id is not None else None
+            if parent is None:
+                parent_text = ""
+            elif name_counts[_norm(parent.name)] == 1:
+                parent_text = parent.name
+            else:
+                parent_text = PATH_SEPARATOR.join(self._path_parts(parent, by_id))
+            rows.append([unit.name, unit.type, parent_text, unit.head_title or "", unit.head_name or ""])
+
+        content = build_csv(["name", "type", "parent_path", "head_title", "head_name"], rows)
+
+        await self.audit_log_service.log(
+            current_user, "org_unit.export", "org_unit", None, "CSV export", details=f"{len(units)} org units",
+        )
+        return content
+
+    def _resolve_parent(
+        self,
+        parent_parts: list[str],
+        path_map: dict[tuple[str, ...], int],
+        name_index: dict[str, list[tuple[str, ...]]],
+        display_map: dict[tuple[str, ...], str],
+    ) -> tuple[tuple[str, ...], str | None]:
+        if not parent_parts:
+            return (), None
+
+        wanted = tuple(_norm(part) for part in parent_parts)
+        shown = PATH_SEPARATOR.join(parent_parts)
+
+        if len(wanted) > 1:
+            if wanted in path_map:
+                return wanted, None
+            return (), f'Parent "{shown}" was not found'
+
+        matches = name_index.get(wanted[0], [])
+        top_level = [key for key in matches if len(key) == 1]
+        if top_level:
+            return top_level[0], None
+        if len(matches) == 1:
+            return matches[0], None
+        if not matches:
+            return (), f'Parent "{shown}" was not found'
+
+        options = "; ".join(display_map[key] for key in matches[:5])
+        return (), f'Parent "{shown}" matches several units. Use the full path: {options}'
+
+    async def import_csv(self, file: UploadFile, current_user: User, dry_run: bool) -> ImportResult:
+        self._check_write_permission(current_user)
+        rows = await read_csv_upload(file, ("name", "type"))
+
+        units = await self.org_unit_repo.list_all()
+        by_id = {unit.id: unit for unit in units}
+        path_map: dict[tuple[str, ...], int] = {}
+        name_index: dict[str, list[tuple[str, ...]]] = {}
+        display_map: dict[tuple[str, ...], str] = {}
+        for unit in units:
+            parts = self._path_parts(unit, by_id)
+            key = tuple(_norm(part) for part in parts)
+            path_map[key] = unit.id
+            name_index.setdefault(key[-1], []).append(key)
+            display_map[key] = PATH_SEPARATOR.join(parts)
+
+        errors: list[ImportRowIssue] = []
+        skipped: list[ImportRowIssue] = []
+        candidates: list[dict] = []
+
+        for line, row in rows:
+            name = " ".join(row.get("name", "").split())
+            unit_type = " ".join(row.get("type", "").split())
+            parent_parts = [
+                " ".join(part.split()) for part in row.get("parent_path", "").split(">") if part.strip()
+            ]
+            head_title = " ".join(row.get("head_title", "").split()) or None
+            head_name = " ".join(row.get("head_name", "").split()) or None
+
+            problem = None
+            if not name:
+                problem = "Name is required"
+            elif len(name) > 255:
+                problem = "Name is longer than 255 characters"
+            elif ">" in name:
+                problem = 'Name cannot contain ">"'
+            elif not unit_type:
+                problem = "Type is required"
+            elif len(unit_type) > 100:
+                problem = "Type is longer than 100 characters"
+            elif head_title and len(head_title) > 255:
+                problem = "Head title is longer than 255 characters"
+            elif head_name and len(head_name) > 255:
+                problem = "Head name is longer than 255 characters"
+
+            if problem:
+                errors.append(ImportRowIssue(line=line, message=problem))
+                continue
+
+            candidates.append({
+                "line": line, "name": name, "type": unit_type, "parent_parts": parent_parts,
+                "head_title": head_title, "head_name": head_name,
+            })
+
+        plan: list[dict] = []
+        placeholder = 0
+        remaining = candidates
+
+        while remaining:
+            unresolved: list[dict] = []
+            progressed = False
+
+            for candidate in remaining:
+                parent_key, problem = self._resolve_parent(
+                    candidate["parent_parts"], path_map, name_index, display_map
+                )
+                if problem is not None:
+                    candidate["problem"] = problem
+                    unresolved.append(candidate)
+                    continue
+
+                progressed = True
+                key = parent_key + (_norm(candidate["name"]),)
+                parent_label = display_map[parent_key] if parent_key else ""
+                label = f"{parent_label}{PATH_SEPARATOR}{candidate['name']}" if parent_label else candidate["name"]
+
+                if key in path_map:
+                    skipped.append(ImportRowIssue(
+                        line=candidate["line"], message=f"{label} already exists (or is listed twice)",
+                    ))
+                    continue
+
+                placeholder -= 1
+                path_map[key] = placeholder
+                name_index.setdefault(key[-1], []).append(key)
+                display_map[key] = label
+                plan.append({
+                    **candidate,
+                    "placeholder": placeholder,
+                    "parent_id": path_map[parent_key] if parent_key else None,
+                })
+
+            if not progressed:
+                for candidate in unresolved:
+                    errors.append(ImportRowIssue(line=candidate["line"], message=candidate["problem"]))
+                break
+
+            remaining = unresolved
+
+        errors.sort(key=lambda issue: issue.line)
+        skipped.sort(key=lambda issue: issue.line)
+
+        if errors:
+            return ImportResult(
+                dry_run=dry_run, created=0, skipped=len(skipped), errors=errors, skipped_rows=skipped,
+            )
+
+        if not dry_run and plan:
+            real_ids: dict[int, int] = {}
+            try:
+                for entry in plan:
+                    parent_id = entry["parent_id"]
+                    if parent_id is not None and parent_id < 0:
+                        parent_id = real_ids[parent_id]
+                    unit = OrgUnit(
+                        name=entry["name"], type=entry["type"], parent_id=parent_id,
+                        head_title=entry["head_title"], head_name=entry["head_name"],
+                    )
+                    self.db.add(unit)
+                    await self.db.flush()
+                    real_ids[entry["placeholder"]] = unit.id
+                await self.db.commit()
+            except Exception:
+                await self.db.rollback()
+                raise HTTPException(500, "The import failed and nothing was saved")
+
+            await self.audit_log_service.log(
+                current_user, "org_unit.import", "org_unit", None, "CSV import",
+                details=f"{len(plan)} added, {len(skipped)} skipped",
+            )
+
+        return ImportResult(
+            dry_run=dry_run, created=len(plan), skipped=len(skipped), errors=[], skipped_rows=skipped,
+        )
 
     async def delete(self, org_unit_id: int, current_user: User, reassign_to: int | None = None) -> None:
         self._check_write_permission(current_user)

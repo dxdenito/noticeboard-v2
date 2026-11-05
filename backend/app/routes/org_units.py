@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File, Request, Response
+from app.core.limiter import limiter
+from app.schemas.import_schema import ImportResult
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_db
@@ -35,6 +38,35 @@ async def get_org_unit_tree(db: AsyncSession = Depends(get_db)):
 async def get_org_unit_types(db: AsyncSession = Depends(get_db)):
     service = OrgUnitService(db)
     return await service.list_types()
+
+@router.get("/export")
+async def export_org_units(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = OrgUnitService(db)
+    content = await service.export_csv(current_user)
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": 'attachment; filename="org-units.csv"',
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@router.post("/import", response_model=ImportResult)
+@limiter.limit("20/minute")
+async def import_org_units(
+    request: Request,
+    file: UploadFile = File(...),
+    dry_run: bool = True,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = OrgUnitService(db)
+    return await service.import_csv(file, current_user, dry_run)
 
 
 @router.get("/{org_unit_id}", response_model=OrgUnitRead)

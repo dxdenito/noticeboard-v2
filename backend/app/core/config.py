@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads"
     cross_origin_cookies: bool = False
     cookie_secure: bool = False
+    login_rate_limit: str = "5/minute"
     cors_origins: str = "http://localhost:5173"
 
     @property
