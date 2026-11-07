@@ -15,29 +15,14 @@ import { api } from "../api/client";
 
 const NAV_ENTRIES = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: isAdmin },
-  {
-    key: "notices",
-    label: "Notices",
-    icon: FileText,
-    matchPrefixes: ["/dashboard/notices/", "/dashboard/edit-notice/"],
-    children: [
-      { to: "/dashboard/post", label: "Post Notice", icon: PlusCircle, show: isAdmin },
-      { to: "/dashboard/my-notices", label: "My Notices", icon: FileText, show: isAdmin },
-      { to: "/dashboard/all-notices", label: "All Notices", icon: LayoutList, show: canViewAllNotices },
-      { to: "/dashboard/pinned", label: "Pinned Notices", icon: Pin, show: canPin },
-    ],
-  },
-  {
-    key: "events",
-    label: "Events",
-    icon: CalendarDays,
-    matchPrefixes: ["/dashboard/events/", "/dashboard/edit-event/"],
-    children: [
+  { to: "/dashboard/post", label: "Post Notice", icon: PlusCircle, show: isAdmin },
+  { to: "/dashboard/my-notices", label: "My Notices", icon: FileText, show: isAdmin },
+  { to: "/dashboard/all-notices", label: "All Notices", icon: LayoutList, show: canViewAllNotices },
+  { to: "/dashboard/pinned", label: "Pinned Notices", icon: Pin, show: canPin },
       { to: "/dashboard/post-event", label: "Post Event", icon: CalendarPlus, show: isAdmin },
       { to: "/dashboard/my-events", label: "My Events", icon: CalendarDays, show: isAdmin },
-      { to: "/dashboard/all-events", label: "All Events", icon: LayoutList, show: canViewAllEvents },
-    ],
-  },
+      { to: "/dashboard/all-events", label: "All Events", icon: LayoutList, show: canViewAllEvents }, 
+  
   { to: "/dashboard/review-queue", label: "Review Queue", icon: CheckSquare, show: canApprove, badgeKey: "pending" },
   { to: "/dashboard/users", label: "Manage Users", icon: Users, show: canManageUsers },
   { to: "/dashboard/corporate-admins", label: "Corporate Admins", icon: Building2, show: isCorporateSuperAdmin },
