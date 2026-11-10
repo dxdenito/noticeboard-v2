@@ -18,6 +18,7 @@ class AuditLogRead(BaseModel):
     target_id: int | None
     target_label: str | None
     details: str | None
+    ip_address: str | None = None
     created_at: datetime
 
     class Config:

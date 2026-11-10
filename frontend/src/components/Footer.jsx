@@ -133,7 +133,7 @@ export default function Footer() {
                         </a>
                         . All rights reserved.
                     </span>
-                    <span>Discover JKUAT</span>
+                    <span><a href="https://discover.jkuat.ac.ke" target="_blank" rel="noopener noreferrer" className="font-medium text-white/80 transition-colors hover:text-white">Discover JKUAT</a></span>
                 </div>
             </div>
         </footer>

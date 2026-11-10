@@ -20,8 +20,10 @@ COLUMNS = [
     ("Item type", 16),
     ("Item", 38),
     ("Item ID", 10),
+    ("IP address", 40),
     ("Details", 80),
 ]
+WRAP_COLUMNS = (5, 8)
 HEADER_FILL = PatternFill("solid", start_color="1B5E20")
 HEADER_FONT = Font(bold=True, color="FFFFFF")
 LABEL_FONT = Font(bold=True, color="444444")
@@ -59,9 +61,11 @@ class AuditExportService:
         search: str | None,
         date_from: datetime | None,
         date_to: datetime | None,
+        ip_address: str | None = None,
     ) -> dict:
         rows = await self.log_repo.list_logs(
-            actor_id, target_type, action, search, date_from, date_to, EXPORT_MAX_ROWS + 1, 0
+            actor_id, target_type, action, search, date_from, date_to,
+            EXPORT_MAX_ROWS + 1, 0, ip_address,
         )
         truncated = len(rows) > EXPORT_MAX_ROWS
         rows = rows[:EXPORT_MAX_ROWS]
@@ -75,6 +79,7 @@ class AuditExportService:
             ("User", actor_name or "Everyone"),
             ("Item type", target_type or "All types"),
             ("Action", action or "All actions"),
+            ("IP address", ip_address or "Any address"),
             ("From", _fmt(date_from) if date_from else "Any date"),
             ("To", _fmt(date_to - timedelta(seconds=1)) if date_to else "Any date"),
             ("Search text", search or "None"),
@@ -128,12 +133,13 @@ class AuditExportService:
                 log.target_type,
                 log.target_label or "",
                 log.target_id,
+                log.ip_address or "",
                 details,
             ]
             for index, value in enumerate(values, start=1):
                 cell = _put(ws, row_number, index, value)
                 cell.border = CELL_BORDER
-                cell.alignment = Alignment(vertical="top", wrap_text=index in (5, 7))
+                cell.alignment = Alignment(vertical="top", wrap_text=index in WRAP_COLUMNS)
                 if index == 1:
                     cell.number_format = "yyyy-mm-dd hh:mm:ss"
             row_number += 1
@@ -151,6 +157,8 @@ class AuditExportService:
             summary_parts.append(f"type: {target_type}")
         if action:
             summary_parts.append(f"action: {action}")
+        if ip_address:
+            summary_parts.append(f"ip: {ip_address}")
         if date_from:
             summary_parts.append(f"from: {_fmt(date_from)}")
         if date_to:

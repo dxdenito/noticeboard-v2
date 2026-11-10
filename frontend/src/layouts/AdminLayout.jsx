@@ -2,14 +2,14 @@ import AdminNavbar from "../components/admin/AdminNavbar";
 import {
   Menu, LayoutDashboard, PlusCircle, FileText, CheckSquare, Users, Tags, Pin, LogOut,
   Network, Building2, ScrollText, LayoutList, Mail, KeyRound, CalendarPlus, CalendarDays,
-  ChevronDown, ShieldCheck, Database,
+  ChevronDown, ShieldCheck, Database, Send,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate, Link, Outlet } from "react-router-dom";
 import {
   isAdmin, canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits,
-  isCorporateSuperAdmin, canViewAuditLog, canViewAllNotices, canManageInstitutionalDomains, canViewAllEvents,
+  isCorporateSuperAdmin, canViewAuditLog, canViewAllNotices, canManageInstitutionalDomains, canViewAllEvents, canSendDigest
 } from "../lib/permissions";
 import { api } from "../api/client";
 
@@ -24,6 +24,7 @@ const NAV_ENTRIES = [
       { to: "/dashboard/all-events", label: "All Events", icon: LayoutList, show: canViewAllEvents }, 
   
   { to: "/dashboard/review-queue", label: "Review Queue", icon: CheckSquare, show: canApprove, badgeKey: "pending" },
+  { to: "/dashboard/email-digest", label: "Email Digest", icon: Send, show: canSendDigest },
   { to: "/dashboard/users", label: "Manage Users", icon: Users, show: canManageUsers },
   { to: "/dashboard/corporate-admins", label: "Corporate Admins", icon: Building2, show: isCorporateSuperAdmin },
   {

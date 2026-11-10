@@ -88,3 +88,12 @@ export function canViewAllEvents(user) {
   if (!user) return false;
   return ["super_admin", "ict_sub_admin", "corporate_admin"].includes(user.role.name);
 }
+
+export function canSendDigest(user) {
+  if (!user) return false;
+  return ["super_admin", "corporate_super_admin"].includes(user.role.name);
+}
+
+export function canManageDigestSettings(user) {
+  return user?.role?.name === "super_admin";
+}

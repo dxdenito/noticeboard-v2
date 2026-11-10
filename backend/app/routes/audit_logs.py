@@ -1,7 +1,8 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_ip import normalize_ip
 from app.core.deps import require_roles, get_db
 from app.core.limiter import limiter
 from app.services.audit_log_service import AuditLogService
@@ -13,6 +14,15 @@ router = APIRouter(prefix="/audit-logs", tags=["audit-logs"])
 
 VIEWER_ROLES = ("super_admin", "corporate_super_admin")
 XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def parse_ip(value: str | None) -> str | None:
+    if not value:
+        return None
+    normalized = normalize_ip(value)
+    if normalized is None:
+        raise HTTPException(400, "Enter a valid IPv4 or IPv6 address")
+    return normalized
 
 
 @router.get("/meta", response_model=AuditLogMeta)
@@ -32,14 +42,16 @@ async def export_audit_logs(
     target_type: str | None = Query(default=None),
     action: str | None = Query(default=None),
     search: str | None = Query(default=None, max_length=100),
+    ip: str | None = Query(default=None, max_length=45),
     date_from: datetime | None = Query(default=None),
     date_to: datetime | None = Query(default=None),
     current_user: User = Depends(require_roles(*VIEWER_ROLES)),
     db: AsyncSession = Depends(get_db),
 ):
+    ip_address = parse_ip(ip)
     export_service = AuditExportService(db)
     result = await export_service.build(
-        current_user, actor_id, target_type, action, search, date_from, date_to
+        current_user, actor_id, target_type, action, search, date_from, date_to, ip_address
     )
 
     log_service = AuditLogService(db)
@@ -64,6 +76,7 @@ async def list_audit_logs(
     target_type: str | None = Query(default=None),
     action: str | None = Query(default=None),
     search: str | None = Query(default=None, max_length=100),
+    ip: str | None = Query(default=None, max_length=45),
     date_from: datetime | None = Query(default=None),
     date_to: datetime | None = Query(default=None),
     limit: int = Query(default=50, le=200),
@@ -73,5 +86,6 @@ async def list_audit_logs(
 ):
     service = AuditLogService(db)
     return await service.list_logs(
-        actor_id, target_type, action, search, date_from, date_to, limit, offset
+        actor_id, target_type, action, search, date_from, date_to, limit, offset,
+        ip_address=parse_ip(ip),
     )

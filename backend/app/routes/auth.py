@@ -27,8 +27,7 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ):
     auth_service = AuthService(db)
-    ip = request.client.host if request.client else None
-    user = await auth_service.authenticate(form_data.username, form_data.password, ip)
+    user = await auth_service.authenticate(form_data.username, form_data.password)
 
     access_token = create_access_token(data={"sub": user.email})
 

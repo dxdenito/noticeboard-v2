@@ -25,6 +25,7 @@ class AuditLogRepository:
         date_to: datetime | None = None,
         limit: int = 50,
         offset: int = 0,
+        ip_address: str | None = None,
     ) -> list[AuditLog]:
         statement = select(AuditLog).options(selectinload(AuditLog.actor))
 
@@ -34,6 +35,8 @@ class AuditLogRepository:
             statement = statement.where(AuditLog.target_type == target_type)
         if action is not None:
             statement = statement.where(AuditLog.action == action)
+        if ip_address is not None:
+            statement = statement.where(AuditLog.ip_address == ip_address)
         if date_from is not None:
             statement = statement.where(AuditLog.created_at >= date_from)
         if date_to is not None:
@@ -45,6 +48,7 @@ class AuditLogRepository:
                     AuditLog.target_label.ilike(pattern),
                     AuditLog.details.ilike(pattern),
                     AuditLog.action.ilike(pattern),
+                    AuditLog.ip_address.ilike(pattern),
                     User.full_name.ilike(pattern),
                 )
             )

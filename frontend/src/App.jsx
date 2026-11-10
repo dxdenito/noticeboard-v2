@@ -36,6 +36,7 @@ import AdminEventDetail from "./pages/admin/AdminEventDetail";
 import EventDetail from "./pages/EventDetail";
 import AllEvents from "./pages/AllEvents";
 import ScrollToTop from "./components/ScrollToTop";
+import EmailDigest from "./pages/admin/EmailDigest";
 
 
 function App() {
@@ -64,6 +65,7 @@ function App() {
           <Route path="/dashboard/edit-event/:id" element={<EditEvent/>}/>
           <Route path="/dashboard/events/:id" element={<AdminEventDetail/>}/>
           <Route path="/dashboard/all-events" element={<AllEvents/>}/>
+          <Route path="/dashboard/email-digest" element={<EmailDigest/>}/>
           <Route path="/dashboard/my-notices" element={<MyNotices/>}/>
           <Route path="/dashboard/notices/:id" element={<AdminNoticeDetail/>}/>
           <Route path="/dashboard/all-notices" element={

@@ -21,17 +21,16 @@ class AuthService:
         self.email_service = EmailService()
         self.audit_log_service = AuditLogService(db)
 
-    async def _log_failed_login(self, email: str, user_id: int | None, reason: str, ip: str | None) -> None:
-        details = f"{reason}; ip: {ip}" if ip else reason
+    async def _log_failed_login(self, email: str, user_id: int | None, reason: str) -> None:
         await self.audit_log_service.log(
-            None, "auth.login_failed", "user", user_id, email, details=details,
+            None, "auth.login_failed", "user", user_id, email, details=reason,
         )
 
-    async def authenticate(self, email: str, password: str, ip: str | None = None) -> User:
+    async def authenticate(self, email: str, password: str) -> User:
         email = email.strip().lower()
         user = await self.user_repo.get_by_email(email)
         if not user:
-            await self._log_failed_login(email, None, "unknown email", ip)
+            await self._log_failed_login(email, None, "unknown email")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password",
@@ -42,7 +41,7 @@ class AuthService:
         user_email = user.email
 
         if not verify_password(password, user.hashed_password):
-            await self._log_failed_login(user_email, user_id, "wrong password", ip)
+            await self._log_failed_login(user_email, user_id, "wrong password")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password",
@@ -50,16 +49,13 @@ class AuthService:
             )
 
         if not user.is_active:
-            await self._log_failed_login(user_email, user_id, "account inactive", ip)
+            await self._log_failed_login(user_email, user_id, "account inactive")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Your account is inactive. If you haven't activated it yet, check your email — otherwise contact an administrator.",
             )
 
-        await self.audit_log_service.log(
-            user, "auth.login", "user", user_id, user_email,
-            details=f"ip: {ip}" if ip else None,
-        )
+        await self.audit_log_service.log(user, "auth.login", "user", user_id, user_email)
         return user
 
     async def forgot_password(self, email: str, background_tasks: BackgroundTasks) -> None:

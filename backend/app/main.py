@@ -1,9 +1,12 @@
-from fastapi import FastAPI
+import asyncio
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
+from app.core.client_ip import capture_client_ip
 from app.core.limiter import limiter
 from app.routes.auth import router as auth_router
 from app.routes.users import router as user_router
@@ -18,8 +21,25 @@ from app.routes.roles import router as role_router
 from app.routes.institutional_domains import router as institutional_domain_router
 from app.routes.notifications import router as notification_router
 from app.routes.events import router as event_router
+from app.routes.digest import router as digest_router
+from app.services.digest_service import scheduler_loop
 
-app = FastAPI(title="Noticeboard V2 API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler_task = None
+    if settings.digest_scheduler_enabled:
+        scheduler_task = asyncio.create_task(scheduler_loop())
+    yield
+    if scheduler_task is not None:
+        scheduler_task.cancel()
+        try:
+            await scheduler_task
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(title="Noticeboard API", dependencies=[Depends(capture_client_ip)], lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -45,6 +65,7 @@ app.include_router(role_router)
 app.include_router(institutional_domain_router)
 app.include_router(notification_router)
 app.include_router(event_router)
+app.include_router(digest_router)
 
 
 @app.get("/health")

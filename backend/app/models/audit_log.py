@@ -15,6 +15,7 @@ class AuditLog(Base):
         Index("ix_audit_logs_actor_id", "actor_id"),
         Index("ix_audit_logs_action", "action"),
         Index("ix_audit_logs_target", "target_type", "target_id"),
+        Index("ix_audit_logs_ip_address", "ip_address"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -24,6 +25,7 @@ class AuditLog(Base):
     target_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     target_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     details: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     actor: Mapped["User | None"] = relationship("User")

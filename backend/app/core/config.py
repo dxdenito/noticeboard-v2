@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     login_rate_limit: str = "5/minute"
     cors_origins: str = "http://localhost:5173"
+    digest_scheduler_enabled: bool = False
 
     @property
     def cors_origin_list(self) -> list[str]:

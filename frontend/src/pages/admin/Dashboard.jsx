@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   PlusCircle, CalendarPlus, CheckSquare, FileText, CalendarDays, LayoutList, Pin,
-  Users, Tags, Network, Building2, ScrollText, Mail, AlertCircle, ArrowRight,
+  Users, Tags, Network, Building2, ScrollText, Mail, AlertCircle, ArrowRight, Send
 } from "lucide-react";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import {
   isAdmin, canApprove, canManageUsers, canCreateCategories, canPin, canManageOrgUnits,
   isCorporateSuperAdmin, canViewAuditLog, canViewAllNotices, canViewAllEvents,
-  canManageInstitutionalDomains,
+  canManageInstitutionalDomains,canSendDigest
 } from "../../lib/permissions";
 
 const QUICK_LINKS = [
@@ -18,6 +18,7 @@ const QUICK_LINKS = [
   { to: "/dashboard/my-notices", label: "My Notices", icon: FileText, show: isAdmin },
   { to: "/dashboard/my-events", label: "My Events", icon: CalendarDays, show: isAdmin },
   { to: "/dashboard/review-queue", label: "Review Queue", icon: CheckSquare, show: canApprove },
+  { to: "/dashboard/email-digest", label: "Email Digest", icon: Send, show: canSendDigest },  
   { to: "/dashboard/all-notices", label: "All Notices", icon: LayoutList, show: canViewAllNotices },
   { to: "/dashboard/all-events", label: "All Events", icon: LayoutList, show: canViewAllEvents },
   { to: "/dashboard/pinned", label: "Pinned Notices", icon: Pin, show: canPin },
@@ -35,6 +36,7 @@ const EMPTY_DATA = {
   allNotices: null, allEvents: null,
   sitePinned: null, feedPinned: null,
   orgUnitCount: null, recent: null,
+  digest: null,
 };
 
 function plural(count, word) {
@@ -108,7 +110,7 @@ export default function Dashboard() {
     async function load() {
       const [
         myNotices, myEvents, pendingNotices, pendingEvents,
-        allNotices, allEvents, manage, orgUnits, recent,
+        allNotices, allEvents, manage, orgUnits, recent, digest,
       ] = await Promise.all([
         safe(api.get("/notices/mine/counts")),
         safe(api.get("/events/mine/counts")),
@@ -119,6 +121,7 @@ export default function Dashboard() {
         canPin(user) ? safe(api.get("/notices/manage")) : null,
         canManageOrgUnits(user) ? safe(api.get("/org-units/")) : null,
         canViewAuditLog(user) ? safe(api.get("/audit-logs/?limit=6")) : null,
+        canSendDigest(user) ? safe(api.get("/digest/overview")) : null,
       ]);
 
       if (cancelled) return;
@@ -134,6 +137,7 @@ export default function Dashboard() {
         feedPinned: Array.isArray(manage) ? manage.filter((n) => n.is_pinned_feed).length : null,
         orgUnitCount: Array.isArray(orgUnits) ? orgUnits.length : null,
         recent,
+        digest,
       });
       setLoading(false);
     }
@@ -224,6 +228,36 @@ export default function Dashboard() {
               value={data.pendingEvents}
               accent={data.pendingEvents > 0 ? "red" : undefined}
               to="/dashboard/review-queue"
+            />
+          </div>
+        </Section>
+      )}
+      {canSendDigest(user) && data.digest && (
+        <Section title="Email digest">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              label="Last weekly digest"
+              value={
+                data.digest.last_digest
+                  ? new Date(data.digest.last_digest.started_at).toLocaleDateString("default", { day: "numeric", month: "short" })
+                  : "None yet"
+              }
+              to="/dashboard/email-digest"
+            />
+            <StatCard
+              label="Next automatic send"
+              value={
+                data.digest.next_run
+                  ? new Date(data.digest.next_run).toLocaleDateString("default", { weekday: "short", day: "numeric", month: "short" })
+                  : "Off"
+              }
+              to="/dashboard/email-digest"
+            />
+            <StatCard
+              label="Notices waiting to be emailed"
+              value={data.digest.pending_notice_count}
+              accent={data.digest.pending_notice_count > 0 ? "amber" : undefined}
+              to="/dashboard/email-digest"
             />
           </div>
         </Section>

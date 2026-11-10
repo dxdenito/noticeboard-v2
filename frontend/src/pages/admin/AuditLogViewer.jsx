@@ -13,7 +13,7 @@ const BLUE_ACTIONS = [
 ];
 
 const EMPTY_FILTERS = {
-  actorId: "", targetType: "", action: "", dateFrom: "", dateTo: "", search: "",
+  actorId: "", targetType: "", action: "", dateFrom: "", dateTo: "", search: "", ip: "",
 };
 
 function actionColor(action) {
@@ -52,6 +52,7 @@ export default function AuditLogViewer() {
   const [page, setPage] = useState(0);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [searchInput, setSearchInput] = useState("");
+  const [ipInput, setIpInput] = useState("");
   const { showError, showSuccess } = useToast();
   const [exporting, setExporting] = useState(false);
 
@@ -75,6 +76,7 @@ export default function AuditLogViewer() {
     if (filters.targetType) params.set("target_type", filters.targetType);
     if (filters.action) params.set("action", filters.action);
     if (filters.search) params.set("search", filters.search);
+    if (filters.ip) params.set("ip", filters.ip);
     if (filters.dateFrom) params.set("date_from", startOfDayIso(filters.dateFrom));
     if (filters.dateTo) params.set("date_to", startOfNextDayIso(filters.dateTo));
     return params;
@@ -147,7 +149,13 @@ export default function AuditLogViewer() {
   function clearFilters() {
     setFilters(EMPTY_FILTERS);
     setSearchInput("");
+    setIpInput("");
     setPage(0);
+  }
+
+  function applyIp() {
+    const value = ipInput.trim();
+    if (value !== filters.ip) setFilter("ip", value);
   }
 
   const inputClass = "border border-gray-200 rounded-lg px-3 py-1.5 text-xs bg-white";
@@ -198,6 +206,18 @@ export default function AuditLogViewer() {
               ))}
             </select>
           </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">IP address</label>
+            <input
+              type="text"
+              value={ipInput}
+              onChange={(e) => setIpInput(e.target.value)}
+              onBlur={applyIp}
+              onKeyDown={(e) => { if (e.key === "Enter") applyIp(); }}
+              placeholder="e.g. 41.80.12.5"
+              className={`${inputClass} w-36`}
+            />
+          </div>
 
           <div>
             <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">From</label>
@@ -243,9 +263,10 @@ export default function AuditLogViewer() {
                   <span className={`font-bold ${actionColor(log.action)}`}>{log.action}</span>{" "}
                   <span className="text-gray-700">{log.target_label || `${log.target_type} #${log.target_id}`}</span>
                 </div>
-                <span className="text-xs text-gray-400 shrink-0">
-                  {new Date(log.created_at).toLocaleString()}
-                </span>
+                <div className="text-right shrink-0">
+                  <p className="text-xs text-gray-400">{new Date(log.created_at).toLocaleString()}</p>
+                  <p className="text-[11px] text-gray-400 font-mono">{log.ip_address || "–"}</p>
+                </div>
               </div>
               {log.details && (
                 <ul className="mt-1 space-y-0.5">

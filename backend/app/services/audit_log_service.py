@@ -2,6 +2,8 @@ from datetime import datetime
 from enum import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
+from app.core.client_ip import get_current_ip
 from app.repositories.audit_log_repository import AuditLogRepository
 from app.models.audit_log import AuditLog
 from app.models.user import User
@@ -56,6 +58,7 @@ class AuditLogService:
         entry = AuditLog(
             actor_id=actor.id if actor is not None else None,
             action=action,
+            ip_address=get_current_ip(),
             target_type=target_type,
             target_id=target_id,
             target_label=target_label,
@@ -73,9 +76,10 @@ class AuditLogService:
         date_to: datetime | None = None,
         limit: int = 50,
         offset: int = 0,
+        ip_address: str | None = None,
     ) -> list[AuditLog]:
         return await self.log_repo.list_logs(
-            actor_id, target_type, action, search, date_from, date_to, limit, offset
+            actor_id, target_type, action, search, date_from, date_to, limit, offset, ip_address
         )
 
     async def get_filter_options(self) -> dict:
